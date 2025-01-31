@@ -1,0 +1,145 @@
+name: Close release
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Next version type"
+        required: true
+        type: choice
+        default: "patch"
+        options:
+          - patch
+          - minor
+          - major
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  build-binaries:
+    strategy:
+      matrix:
+        binary:
+          - architecture: x86_64-linux
+            runner: self-hosted-hoprnet-big
+          - architecture: aarch64-linux
+            runner: self-hosted-hoprnet-big
+          - architecture: armv7l-linux
+            runner: self-hosted-hoprnet-big
+          - architecture: aarch64-darwin
+            runner: macos-14
+          - architecture: x86_64-darwin
+            runner: macos-13
+    name: Binary ${{ matrix.binary.architecture }}
+    uses: ./.github/workflows/build-binaries.yaml
+    with:
+      branch: main
+      runner: ${{ matrix.binary.runner }}
+      architecture: ${{ matrix.binary.architecture }}
+      version_type: "release"
+    secrets: inherit
+  release:
+    name: Close release
+    needs:
+      - build-binaries
+    runs-on: self-hosted-hoprnet-small
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup GCP
+        id: gcp
+        uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+        with:
+          google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+          install-sdk: "true"
+      - name: Install Nix
+        uses: cachix/install-nix-action@v29
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Use Nix Cache
+        uses: cachix/cachix-action@v15
+        with:
+          name: gnosis-vpn-client
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+        env:
+          USER: runner
+      - name: Setup environment variables
+        id: environment
+        run: |
+          release_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
+          echo "release_version=${release_version}" >> $GITHUB_OUTPUT
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "gnosis_vpn-client - v${{ steps.environment.outputs.release_version }}"
+          tag_name: v${{ steps.environment.outputs.release_version }}
+      - name: Publish binaries
+        run: |
+          architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux" "aarch64-darwin" "x86_64-darwin" )
+          mkdir -p binaries
+          for architecture in "${architectures[@]}"; do
+              gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis_vpn:${{ steps.environment.outputs.release_version }}:gnosis_vpn-${architecture} --destination=./binaries --local-filename=gnosis_vpn-${architecture}
+              gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis_vpn:${{ steps.environment.outputs.release_version }}:gnosis_vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis_vpn-ctl-${architecture}
+              gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-${architecture}" --clobber
+              gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-ctl-${architecture}" --clobber
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GH_RUNNER_TOKEN }}
+      - name: Bump Version
+        id: bump
+        shell: bash
+        run: |
+          current_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
+          # Extract parts without IFS or read
+          IFS='.' read -r major_version minor_version patch_version <<< "${current_version}"
+          echo "Current version $major_version $minor_version $patch_version"
+
+          # Bump the appropriate part
+          echo "Bumping ${{ inputs.release_type }} version"
+          case "${{ inputs.release_type }}" in
+              major)
+                  major_version=$((major_version+1))
+                  minor_version=0
+                  patch_version=0
+                  ;;
+              minor)
+                  minor_version=$((minor_version+1))
+                  patch_version=0
+                  ;;
+              patch)
+                  patch_version=$((patch_version+1))
+                  ;;
+              *)
+                  echo "Invalid release type"
+                  exit 1
+                  ;;
+          esac
+          echo "New version: ${major_version}.${minor_version}.${patch_version}"
+
+          bump_version="${major_version}.${minor_version}.${patch_version}"
+          echo "Updating version from $current_version to $bump_version"
+
+          # Update the version in Cargo.toml
+          # capture group 1: version = "
+          # capture group 2: the version number
+          # capture group 3: "
+          sed -i.bak -E "s/(^version = \")([0-9]+\.[0-9]+\.[0-9]+)(\")/\1${bump_version}\3/" Cargo.toml
+          rm Cargo.toml.bak
+          nix develop --command cargo generate-lockfile
+          echo "bump_version=${bump_version}" >> $GITHUB_OUTPUT
+      - uses: EndBug/add-and-commit@v9
+        with:
+          add: "Cargo.*"
+          new_branch: main
+          message: "Bump to version ${{ steps.bump.outputs.bump_version }}"
+          pathspec_error_handling: exitImmediately
+      - name: Notify new release
+        uses: zulip/github-actions-zulip/send-message@v1
+        with:
+          api-key: ${{ secrets.ZULIP_API_KEY }}
+          email: ${{ secrets.ZULIP_EMAIL }}
+          organization-url: "https://hopr.zulipchat.com"
+          type: "stream"
+          to: "Releases"
+          topic: "main"
+          content: |-
+            I'm thrilled to inform the new **gnosis_vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.

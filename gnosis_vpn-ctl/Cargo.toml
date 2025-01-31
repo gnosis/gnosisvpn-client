@@ -1,0 +1,12 @@
+[package]
+name = "gnosis_vpn-ctl"
+version = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+gnosis_vpn-lib = { workspace = true }
+libp2p-identity = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+url = { workspace = true }
+bpaf = { workspace = true }
