@@ -75,8 +75,11 @@ jobs:
       - name: Publish binaries
         run: |
           architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux" "aarch64-darwin" "x86_64-darwin" )
+          echo $(ls -la binaries)
+          echo $PWD
           mkdir -p binaries
           for architecture in "${architectures[@]}"; do
+              echo "Uploading binary $PWD/binaries/gnosis_vpn-${architecture}"
               gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-${architecture}" --clobber
               gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-ctl-${architecture}" --clobber
           done
