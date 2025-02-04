@@ -91,9 +91,9 @@ fn read_config() -> (Config, Option<Issue>) {
             tracing::info!("no config - using default");
             (Config::default(), None)
         }
-        Err(err) => {
-            tracing::warn!(warn = ?err, "failed to read config file");
-            (Config::default(), Some(Issue::Config(err)))
+        Err(e) => {
+            tracing::warn!(warn = ?e, "failed to read config file");
+            (Config::default(), Some(Issue::Config(e)))
         }
     }
 }
@@ -102,9 +102,9 @@ fn read_state() -> (State, Option<Issue>) {
     match state::read() {
         Ok(state) => (state, None),
         Err(state::Error::NoFile) => (State::default(), None),
-        Err(err) => {
-            tracing::warn!(warn = ?err, "failed to read state file");
-            (State::default(), Some(Issue::State(err)))
+        Err(e) => {
+            tracing::warn!(warn = ?e, "failed to read state file");
+            (State::default(), Some(Issue::State(e)))
         }
     }
 }
@@ -154,8 +154,8 @@ impl Core {
 
     fn setup(&mut self) {
         self.setup_wg_priv_key();
-        if let Err(err) = self.setup_from_config() {
-            tracing::error!(?err, "failed setup from config");
+        if let Err(e) = self.setup_from_config() {
+            tracing::error!(error = ?e, "failed setup from config");
         }
     }
 
@@ -175,9 +175,9 @@ impl Core {
         if let (Some(wg), Some(_), None) = (&self.wg, &self.config.wireguard, &self.wg_priv_key()) {
             let priv_key = match wg.generate_key() {
                 Ok(priv_key) => priv_key,
-                Err(err) => {
-                    tracing::error!(?err, "failed to generate wireguard private key");
-                    self.replace_issue(Issue::WireGuard(err));
+                Err(e) => {
+                    tracing::error!(error = ?e, "failed to generate wireguard private key");
+                    self.replace_issue(Issue::WireGuard(e));
                     return;
                 }
             };
@@ -187,14 +187,14 @@ impl Core {
                         tracing::info!("****** Generated wireguard private key ******");
                         tracing::info!(public_key = %pub_key, "****** Use this pub_key for onboarding ******");
                     }
-                    Err(err) => {
-                        tracing::error!(?err, "failed to generate wireguard public key");
-                        self.replace_issue(Issue::WireGuard(err));
+                    Err(e) => {
+                        tracing::error!(error = ?e, "failed to generate wireguard public key");
+                        self.replace_issue(Issue::WireGuard(e));
                     }
                 },
-                Err(err) => {
-                    tracing::error!(?err, "failed to write wireguard private key to state");
-                    self.replace_issue(Issue::State(err));
+                Err(e) => {
+                    tracing::error!(error = ?e, "failed to write wireguard private key to state");
+                    self.replace_issue(Issue::State(e));
                 }
             };
         }
@@ -363,14 +363,30 @@ impl Core {
                     match wg.connect_session(&info) {
                         Ok(_) => {
                             tracing::info!("opened session and wireguard connection");
+                            tracing::info!(
+                                r"
+
+    /---==========================---\
+    |   VPN CONNECTION ESTABLISHED   |
+    \---==========================---/
+"
+                            );
                         }
-                        Err(err) => {
-                            tracing::warn!(?err, "openend session but failed to connect wireguard session");
-                            self.replace_issue(Issue::WireGuard(err));
+                        Err(e) => {
+                            tracing::warn!(warn = ?e, "openend session but failed to connect wireguard session");
+                            self.replace_issue(Issue::WireGuard(e));
                         }
                     }
                 } else {
                     tracing::info!("opened session without handling wireguard");
+                    tracing::info!(
+                        r"
+
+    /---============================---\
+    |   HOPRD CONNECTION ESTABLISHED   |
+    \---============================---/
+"
+                    );
                 }
                 Ok(())
             }
@@ -652,9 +668,9 @@ impl Core {
                         Ok(_) => {
                             tracing::info!("closed wireguard connection");
                         }
-                        Err(err) => {
-                            tracing::warn!(?err, "error closing wireguard connection");
-                            self.replace_issue(Issue::WireGuard(err));
+                        Err(e) => {
+                            tracing::warn!(warn = ?e, "error closing wireguard connection");
+                            self.replace_issue(Issue::WireGuard(e));
                         }
                     }
                 };

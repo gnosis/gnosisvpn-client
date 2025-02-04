@@ -45,7 +45,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.action != 'closed' && contains(github.event.pull_request.labels.*.name, format('binary:{0}', inputs.architecture))) || (github.event_name == 'pull_request' && github.event.action == 'closed')
     runs-on: ${{ github.event.inputs.runner || inputs.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Set environment variables
         id: vars
