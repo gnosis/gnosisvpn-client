@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: self-hosted-hoprnet-bigger
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,11 +40,11 @@ jobs:
       matrix:
         binary:
           - architecture: x86_64-linux
-            runner: self-hosted-hoprnet-big
+            runner: ubuntu-latest
           - architecture: aarch64-linux
-            runner: self-hosted-hoprnet-big
+            runner: ubuntu-latest
           - architecture: armv7l-linux
-            runner: self-hosted-hoprnet-big
+            runner: ubuntu-latest
           - architecture: aarch64-darwin
             runner: macos-14
           - architecture: x86_64-darwin

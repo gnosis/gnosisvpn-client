@@ -22,7 +22,7 @@ on:
       runner:
         type: choice
         options:
-          - self-hosted-hoprnet-big
+          - ubuntu-latest
           - macos-13
           - macos-14
         required: true
