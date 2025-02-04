@@ -81,7 +81,7 @@ jobs:
               gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-ctl-${architecture}" --clobber
           done
         env:
-          GH_TOKEN: ${{ secrets.GH_RUNNER_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
       - name: Bump Version
         id: bump
         shell: bash
