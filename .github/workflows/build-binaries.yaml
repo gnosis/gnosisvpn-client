@@ -70,14 +70,14 @@ jobs:
           ref: ${{ steps.vars.outputs.branch }}
       - name: Install Nix
         uses: cachix/install-nix-action@v29
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_path: nixpkgs=channel:nixos-24.05
+        # with:
+        #   github_access_token: ${{ secrets.GITHUB_TOKEN }}
+        #   nix_path: nixpkgs=channel:nixos-24.11
       - name: Use Nix Cache
         uses: cachix/cachix-action@v15
         with:
           name: gnosis-vpn-client
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          # authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner
       - name: Get version

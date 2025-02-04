@@ -53,13 +53,13 @@ jobs:
       #     install-sdk: "true"
       - name: Install Nix
         uses: cachix/install-nix-action@v29
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+        # with:
+        #   github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Use Nix Cache
         uses: cachix/cachix-action@v15
         with:
           name: gnosis-vpn-client
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          # authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner
       - name: Setup environment variables
