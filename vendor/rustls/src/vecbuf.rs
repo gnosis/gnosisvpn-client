@@ -76,6 +76,10 @@ impl ChunkVecBuffer {
         let len = bytes.len();
 
         if !bytes.is_empty() {
+            if self.chunks.is_empty() {
+                debug_assert_eq!(self.prefix_used, 0);
+            }
+
             self.chunks.push_back(bytes);
         }
 
@@ -142,6 +146,19 @@ impl ChunkVecBuffer {
         Ok(offs)
     }
 
+    pub(crate) fn consume_first_chunk(&mut self, used: usize) {
+        // this backs (infallible) `BufRead::consume`, where `used` is
+        // user-supplied.
+        assert!(
+            used <= self
+                .chunk()
+                .map(|ch| ch.len())
+                .unwrap_or_default(),
+            "illegal `BufRead::consume` usage",
+        );
+        self.consume(used);
+    }
+
     fn consume(&mut self, used: usize) {
         // first, mark the rightmost extent of the used buffer
         self.prefix_used += used;
@@ -150,12 +167,17 @@ impl ChunkVecBuffer {
         // buffers
         while let Some(buf) = self.chunks.front() {
             if self.prefix_used < buf.len() {
-                break;
+                return;
             } else {
                 self.prefix_used -= buf.len();
                 self.chunks.pop_front();
             }
         }
+
+        debug_assert_eq!(
+            self.prefix_used, 0,
+            "attempted to `ChunkVecBuffer::consume` more than available"
+        );
     }
 
     /// Read data out of this object, passing it `wr`
@@ -172,8 +194,16 @@ impl ChunkVecBuffer {
         }
         let len = cmp::min(bufs.len(), self.chunks.len());
         let used = wr.write_vectored(&bufs[..len])?;
+        assert!(used <= self.len(), "illegal write_vectored return value");
         self.consume(used);
         Ok(used)
+    }
+
+    /// Returns the first contiguous chunk of data, or None if empty.
+    pub(crate) fn chunk(&self) -> Option<&[u8]> {
+        self.chunks
+            .front()
+            .map(|chunk| &chunk[self.prefix_used..])
     }
 }
 

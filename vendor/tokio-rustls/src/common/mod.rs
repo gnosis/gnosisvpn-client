@@ -98,7 +98,7 @@ where
             Err(err) => return Poll::Ready(Err(err)),
         };
 
-        let stats = self.session.process_new_packets().map_err(|err| {
+        self.session.process_new_packets().map_err(|err| {
             // In case we have an alert to send describing this error,
             // try a last-gasp write -- but don't predate the primary
             // error.
@@ -106,13 +106,6 @@ where
 
             io::Error::new(io::ErrorKind::InvalidData, err)
         })?;
-
-        if stats.peer_has_closed() && self.session.is_handshaking() {
-            return Poll::Ready(Err(io::Error::new(
-                io::ErrorKind::UnexpectedEof,
-                "tls handshake alert",
-            )));
-        }
 
         Poll::Ready(Ok(n))
     }
@@ -137,6 +130,7 @@ where
 
             while self.session.wants_write() {
                 match self.write_io(cx) {
+                    Poll::Ready(Ok(0)) => return Poll::Ready(Err(io::ErrorKind::WriteZero.into())),
                     Poll::Ready(Ok(n)) => {
                         wrlen += n;
                         need_flush = true;
@@ -188,7 +182,7 @@ where
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, C, SD> AsyncRead for Stream<'a, IO, C>
+impl<IO: AsyncRead + AsyncWrite + Unpin, C, SD> AsyncRead for Stream<'_, IO, C>
 where
     C: DerefMut + Deref<Target = ConnectionCommon<SD>>,
     SD: SideData,
@@ -248,7 +242,7 @@ where
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, C, SD> AsyncWrite for Stream<'a, IO, C>
+impl<IO: AsyncRead + AsyncWrite + Unpin, C, SD> AsyncWrite for Stream<'_, IO, C>
 where
     C: DerefMut + Deref<Target = ConnectionCommon<SD>>,
     SD: SideData,
@@ -329,14 +323,18 @@ where
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
         self.session.writer().flush()?;
         while self.session.wants_write() {
-            ready!(self.write_io(cx))?;
+            if ready!(self.write_io(cx))? == 0 {
+                return Poll::Ready(Err(io::ErrorKind::WriteZero.into()));
+            }
         }
         Pin::new(&mut self.io).poll_flush(cx)
     }
 
     fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         while self.session.wants_write() {
-            ready!(self.write_io(cx))?;
+            if ready!(self.write_io(cx))? == 0 {
+                return Poll::Ready(Err(io::ErrorKind::WriteZero.into()));
+            }
         }
 
         Poll::Ready(match ready!(Pin::new(&mut self.io).poll_shutdown(cx)) {
@@ -357,7 +355,7 @@ pub struct SyncReadAdapter<'a, 'b, T> {
     pub cx: &'a mut Context<'b>,
 }
 
-impl<'a, 'b, T: AsyncRead + Unpin> Read for SyncReadAdapter<'a, 'b, T> {
+impl<T: AsyncRead + Unpin> Read for SyncReadAdapter<'_, '_, T> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut buf = ReadBuf::new(buf);
@@ -378,7 +376,7 @@ pub struct SyncWriteAdapter<'a, 'b, T> {
     pub cx: &'a mut Context<'b>,
 }
 
-impl<'a, 'b, T: Unpin> SyncWriteAdapter<'a, 'b, T> {
+impl<T: Unpin> SyncWriteAdapter<'_, '_, T> {
     #[inline]
     fn poll_with<U>(
         &mut self,
@@ -391,7 +389,7 @@ impl<'a, 'b, T: Unpin> SyncWriteAdapter<'a, 'b, T> {
     }
 }
 
-impl<'a, 'b, T: AsyncWrite + Unpin> Write for SyncWriteAdapter<'a, 'b, T> {
+impl<T: AsyncWrite + Unpin> Write for SyncWriteAdapter<'_, '_, T> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.poll_with(|io, cx| io.poll_write(cx, buf))

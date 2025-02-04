@@ -13,12 +13,13 @@
 edition = "2021"
 rust-version = "1.65"
 name = "security-framework-sys"
-version = "2.12.1"
+version = "2.14.0"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Kornel <kornel@geekhood.net>",
 ]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

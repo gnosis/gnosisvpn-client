@@ -89,6 +89,13 @@
 //!   For example, with `CFLAGS='a "b c"'`, the compiler will be invoked with 2 arguments -
 //!   `a` and `b c` - rather than 3: `a`, `"b` and `c"`.
 //! * `CXX...` - see [C++ Support](#c-support).
+//! * `CC_FORCE_DISABLE` - If set, `cc` will never run any [`Command`]s, and methods that
+//!   would return an [`Error`]. This is intended for use by third-party build systems
+//!   which want to be absolutely sure that they are in control of building all
+//!   dependencies. Note that operations that return [`Tool`]s such as
+//!   [`Build::get_compiler`] may produce less accurate results as in some cases `cc` runs
+//!   commands in order to locate compilers. Additionally, this does nothing to prevent
+//!   users from running [`Tool::to_command`] and executing the [`Command`] themselves.//!
 //!
 //! Furthermore, projects using this crate may specify custom environment variables
 //! to be inspected, for example via the `Build::try_flags_from_environment`
@@ -226,7 +233,10 @@ use std::path::{Component, Path, PathBuf};
 #[cfg(feature = "parallel")]
 use std::process::Child;
 use std::process::Command;
-use std::sync::{Arc, RwLock};
+use std::sync::{
+    atomic::{AtomicU8, Ordering::Relaxed},
+    Arc, RwLock,
+};
 
 use shlex::Shlex;
 
@@ -244,12 +254,15 @@ use command_helpers::*;
 
 mod tool;
 pub use tool::Tool;
-use tool::ToolFamily;
+use tool::{CompilerFamilyLookupCache, ToolFamily};
 
 mod tempfile;
 
 mod utilities;
 use utilities::*;
+
+mod flags;
+use flags::*;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 struct CompilerFlag {
@@ -264,7 +277,7 @@ struct BuildCache {
     env_cache: RwLock<HashMap<Box<str>, Env>>,
     apple_sdk_root_cache: RwLock<HashMap<Box<str>, Arc<OsStr>>>,
     apple_versions_cache: RwLock<HashMap<Box<str>, Arc<str>>>,
-    cached_compiler_family: RwLock<HashMap<Box<Path>, ToolFamily>>,
+    cached_compiler_family: RwLock<CompilerFamilyLookupCache>,
     known_flag_support_status_cache: RwLock<HashMap<CompilerFlag, bool>>,
     target_info_parser: target::TargetInfoParser,
 }
@@ -318,6 +331,7 @@ pub struct Build {
     emit_rerun_if_env_changed: bool,
     shell_escaped_flags: Option<bool>,
     build_cache: Arc<BuildCache>,
+    inherit_rustflags: bool,
 }
 
 /// Represents the types of errors that may occur while using cc-rs.
@@ -333,13 +347,19 @@ enum ErrorKind {
     ToolNotFound,
     /// One of the function arguments failed validation.
     InvalidArgument,
-    /// No known macro is defined for the compiler when discovering tool family
+    /// No known macro is defined for the compiler when discovering tool family.
     ToolFamilyMacroNotFound,
-    /// Invalid target
+    /// Invalid target.
     InvalidTarget,
+    /// Unknown target.
+    UnknownTarget,
+    /// Invalid rustc flag.
+    InvalidFlag,
     #[cfg(feature = "parallel")]
     /// jobserver helpthread failure
     JobserverHelpThreadError,
+    /// `cc` has been disabled by an environment variable.
+    Disabled,
 }
 
 /// Represents an internal error that occurred, with an explanation.
@@ -437,6 +457,7 @@ impl Build {
             emit_rerun_if_env_changed: true,
             shell_escaped_flags: None,
             build_cache: Arc::default(),
+            inherit_rustflags: true,
         }
     }
 
@@ -551,7 +572,6 @@ impl Build {
     ///     .flag("unwanted_flag")
     ///     .remove_flag("unwanted_flag");
     /// ```
-
     pub fn remove_flag(&mut self, flag: &str) -> &mut Build {
         self.flags.retain(|other_flag| &**other_flag != flag);
         self
@@ -625,7 +645,7 @@ impl Build {
     pub fn is_flag_supported(&self, flag: impl AsRef<OsStr>) -> Result<bool, Error> {
         self.is_flag_supported_inner(
             flag.as_ref(),
-            self.get_base_compiler()?.path(),
+            &self.get_base_compiler()?,
             &self.get_target()?,
         )
     }
@@ -633,11 +653,11 @@ impl Build {
     fn is_flag_supported_inner(
         &self,
         flag: &OsStr,
-        compiler_path: &Path,
+        tool: &Tool,
         target: &TargetInfo<'_>,
     ) -> Result<bool, Error> {
         let compiler_flag = CompilerFlag {
-            compiler: compiler_path.into(),
+            compiler: tool.path().into(),
             flag: flag.into(),
         };
 
@@ -659,12 +679,13 @@ impl Build {
         let mut compiler = {
             let mut cfg = Build::new();
             cfg.flag(flag)
-                .compiler(compiler_path)
+                .compiler(tool.path())
                 .cargo_metadata(self.cargo_output.metadata)
                 .opt_level(0)
                 .debug(false)
                 .cpp(self.cpp)
                 .cuda(self.cuda)
+                .inherit_rustflags(false)
                 .emit_rerun_if_env_changed(self.emit_rerun_if_env_changed);
             if let Some(target) = &self.target {
                 cfg.target(target);
@@ -704,10 +725,18 @@ impl Build {
             },
         );
 
-        // Checking for compiler flags does not require linking
-        cmd.arg("-c");
+        if compiler.supports_path_delimiter() {
+            cmd.arg("--");
+        }
 
         cmd.arg(&src);
+
+        // On MSVC skip the CRT by setting the entry point to `main`.
+        // This way we don't need to add the default library paths.
+        if compiler.is_like_msvc() {
+            // Flags from _LINK_ are appended to the linker arguments.
+            cmd.env("_LINK_", "-entry:main");
+        }
 
         let output = cmd.output()?;
         let is_supported = output.status.success() && output.stderr.is_empty();
@@ -1076,10 +1105,16 @@ impl Build {
         self
     }
 
-    /// Configures the target this configuration will be compiling for.
+    /// Configures the `rustc` target this configuration will be compiling
+    /// for.
     ///
-    /// This option is automatically scraped from the `TARGET` environment
-    /// variable by build scripts, so it's not required to call this function.
+    /// This will fail if using a target not in a pre-compiled list taken from
+    /// `rustc +nightly --print target-list`. The list will be updated
+    /// periodically.
+    ///
+    /// You should avoid setting this in build scripts, target information
+    /// will instead be retrieved from the environment variables `TARGET` and
+    /// `CARGO_CFG_TARGET_*` that Cargo sets.
     ///
     /// # Example
     ///
@@ -1315,6 +1350,15 @@ impl Build {
         self
     }
 
+    /// Configure whether cc should automatically inherit compatible flags passed to rustc
+    /// from `CARGO_ENCODED_RUSTFLAGS`.
+    ///
+    /// This option defaults to `true`.
+    pub fn inherit_rustflags(&mut self, inherit_rustflags: bool) -> &mut Build {
+        self.inherit_rustflags = inherit_rustflags;
+        self
+    }
+
     #[doc(hidden)]
     pub fn __set_env<A, B>(&mut self, a: A, b: B) -> &mut Build
     where
@@ -1542,6 +1586,8 @@ impl Build {
 
         use parallel::async_executor::{block_on, YieldOnce};
 
+        check_disabled()?;
+
         if objs.len() <= 1 {
             for obj in objs {
                 let (mut cmd, name) = self.create_compile_object_cmd(obj)?;
@@ -1688,6 +1734,8 @@ impl Build {
 
     #[cfg(not(feature = "parallel"))]
     fn compile_objects(&self, objs: &[Object]) -> Result<(), Error> {
+        check_disabled()?;
+
         for obj in objs {
             let (mut cmd, name) = self.create_compile_object_cmd(obj)?;
             run(&mut cmd, &name, &self.cargo_output)?;
@@ -1751,7 +1799,8 @@ impl Build {
         if is_asm {
             cmd.args(self.asm_flags.iter().map(std::ops::Deref::deref));
         }
-        if compiler.family == (ToolFamily::Msvc { clang_cl: true }) && !is_assembler_msvc {
+
+        if compiler.supports_path_delimiter() && !is_assembler_msvc {
             // #513: For `clang-cl`, separate flags/options from the input file.
             // When cross-compiling macOS -> Windows, this avoids interpreting
             // common `/Users/...` paths as the `/U` flag and triggering
@@ -1759,6 +1808,7 @@ impl Build {
             cmd.arg("--");
         }
         cmd.arg(&obj.src);
+
         if cfg!(target_os = "macos") {
             self.fix_env_for_apple_os(&mut cmd)?;
         }
@@ -1906,9 +1956,14 @@ impl Build {
             cmd.args.push((**flag).into());
         }
 
+        // Add cc flags inherited from matching rustc flags
+        if self.inherit_rustflags {
+            self.add_inherited_rustflags(&mut cmd, &target)?;
+        }
+
         for flag in self.flags_supported.iter() {
             if self
-                .is_flag_supported_inner(flag, &cmd.path, &target)
+                .is_flag_supported_inner(flag, &cmd, &target)
                 .unwrap_or(false)
             {
                 cmd.push_cc_arg((**flag).into());
@@ -1926,6 +1981,19 @@ impl Build {
         if self.warnings_into_errors {
             let warnings_to_errors_flag = cmd.family.warnings_to_errors_flag().into();
             cmd.push_cc_arg(warnings_to_errors_flag);
+        }
+
+        // Copied from <https://github.com/rust-lang/rust/blob/5db81020006d2920fc9c62ffc0f4322f90bffa04/compiler/rustc_codegen_ssa/src/back/linker.rs#L27-L38>
+        //
+        // Disables non-English messages from localized linkers.
+        // Such messages may cause issues with text encoding on Windows
+        // and prevent inspection of msvc output in case of errors, which we occasionally do.
+        // This should be acceptable because other messages from rustc are in English anyway,
+        // and may also be desirable to improve searchability of the compiler diagnostics.
+        if matches!(cmd.family, ToolFamily::Msvc { clang_cl: false }) {
+            cmd.env.push(("VSLANG".into(), "1033".into()));
+        } else {
+            cmd.env.push(("LC_ALL".into(), "C".into()));
         }
 
         Ok(cmd)
@@ -2036,6 +2104,26 @@ impl Build {
                         cmd.push_cc_arg("-pthread".into());
                     }
                 }
+
+                if target.os == "nto" {
+                    // Select the target with `-V`, see qcc documentation:
+                    // QNX 7.1: https://www.qnx.com/developers/docs/7.1/index.html#com.qnx.doc.neutrino.utilities/topic/q/qcc.html
+                    // QNX 8.0: https://www.qnx.com/developers/docs/8.0/com.qnx.doc.neutrino.utilities/topic/q/qcc.html
+                    // This assumes qcc/q++ as compiler, which is currently the only supported compiler for QNX.
+                    // See for details: https://github.com/rust-lang/cc-rs/pull/1319
+                    let arg = match target.arch {
+                        "i586" => "-Vgcc_ntox86_cxx",
+                        "aarch64" => "-Vgcc_ntoaarch64le_cxx",
+                        "x86_64" => "-Vgcc_ntox86_64_cxx",
+                        _ => {
+                            return Err(Error::new(
+                                ErrorKind::InvalidTarget,
+                                format!("Unknown architecture for Neutrino QNX: {}", target.arch),
+                            ))
+                        }
+                    };
+                    cmd.push_cc_arg(arg.into());
+                }
             }
         }
 
@@ -2058,6 +2146,12 @@ impl Build {
                 cmd.args.push("-m32".into());
             } else if target.abi == "x32" {
                 cmd.args.push("-mx32".into());
+            } else if target.os == "aix" {
+                if cmd.family == ToolFamily::Gnu {
+                    cmd.args.push("-maix64".into());
+                } else {
+                    cmd.args.push("-m64".into());
+                }
             } else if target.arch == "x86_64" || target.arch == "powerpc64" {
                 cmd.args.push("-m64".into());
             }
@@ -2094,17 +2188,14 @@ impl Build {
                         }
                     }
 
-                    // Add version information to the target.
-                    let llvm_target = if target.vendor == "apple" {
-                        let deployment_target = self.apple_deployment_target(target);
-                        target.versioned_llvm_target(Some(&deployment_target))
-                    } else {
-                        target.versioned_llvm_target(None)
-                    };
-
-                    // Pass `--target` with the LLVM target to properly
-                    // configure Clang even when cross-compiling.
-                    cmd.push_cc_arg(format!("--target={llvm_target}").into());
+                    // Pass `--target` with the LLVM target to properly configure Clang even when
+                    // cross-compiling.
+                    //
+                    // We intentionally don't put the deployment version in here on Apple targets,
+                    // and instead pass that via `-mmacosx-version-min=` and similar flags, for
+                    // better compatibility with older versions of Clang that has poor support for
+                    // versioned target names (especially when it comes to configuration files).
+                    cmd.push_cc_arg(format!("--target={}", target.llvm_target).into());
                 }
             }
             ToolFamily::Msvc { clang_cl } => {
@@ -2120,8 +2211,7 @@ impl Build {
                         cmd.push_cc_arg("-m32".into());
                         cmd.push_cc_arg("-arch:IA32".into());
                     } else {
-                        let llvm_target = target.versioned_llvm_target(None);
-                        cmd.push_cc_arg(format!("--target={llvm_target}").into());
+                        cmd.push_cc_arg(format!("--target={}", target.llvm_target).into());
                     }
                 } else if target.full_arch == "i586" {
                     cmd.push_cc_arg("-arch:IA32".into());
@@ -2171,6 +2261,7 @@ impl Build {
                     if target.abi == "eabihf" {
                         // lowest common denominator FPU
                         cmd.args.push("-mfpu=vfpv3-d16".into());
+                        cmd.args.push("-mfloat-abi=hard".into());
                     }
                 }
 
@@ -2339,6 +2430,23 @@ impl Build {
             }
         }
 
+        Ok(())
+    }
+
+    fn add_inherited_rustflags(
+        &self,
+        cmd: &mut Tool,
+        target: &TargetInfo<'_>,
+    ) -> Result<(), Error> {
+        let env_os = match self.getenv("CARGO_ENCODED_RUSTFLAGS") {
+            Some(env) => env,
+            // No encoded RUSTFLAGS -> nothing to do
+            None => return Ok(()),
+        };
+
+        let env = env_os.to_string_lossy();
+        let codegen_flags = RustcCodegenFlags::parse(&env)?;
+        codegen_flags.cc_flags(self, cmd, target);
         Ok(())
     }
 
@@ -2533,23 +2641,13 @@ impl Build {
     fn apple_flags(&self, cmd: &mut Tool) -> Result<(), Error> {
         let target = self.get_target()?;
 
-        // If the compiler is Clang, then we've already specifed the target
-        // information (including the deployment target) with the `--target`
-        // option, so we don't need to do anything further here.
+        // Pass the deployment target via `-mmacosx-version-min=`, `-mtargetos=` and similar.
         //
-        // If the compiler is GCC, then we need to specify
-        // `-mmacosx-version-min` to set the deployment target, as well
-        // as to say that the target OS is macOS.
-        //
-        // NOTE: GCC does not support `-miphoneos-version-min=` etc. (because
-        // it does not support iOS in general), but we specify them anyhow in
-        // case we actually have a Clang-like compiler disguised as a GNU-like
-        // compiler, or in case GCC adds support for these in the future.
-        if !cmd.is_like_clang() {
-            let min_version = self.apple_deployment_target(&target);
-            cmd.args
-                .push(target.apple_version_flag(&min_version).into());
-        }
+        // It is also necessary on GCC, as it forces a compilation error if the compiler is not
+        // configured for Darwin: https://gcc.gnu.org/onlinedocs/gcc/Darwin-Options.html
+        let min_version = self.apple_deployment_target(&target);
+        cmd.args
+            .push(target.apple_version_flag(&min_version).into());
 
         // AppleClang sometimes requires sysroot even on macOS
         if cmd.is_xctoolchain_clang() || target.os != "macos" {
@@ -2641,19 +2739,13 @@ impl Build {
         let tool_opt: Option<Tool> = self
             .env_tool(env)
             .map(|(tool, wrapper, args)| {
-                // find the driver mode, if any
-                const DRIVER_MODE: &str = "--driver-mode=";
-                let driver_mode = args
-                    .iter()
-                    .find(|a| a.starts_with(DRIVER_MODE))
-                    .map(|a| &a[DRIVER_MODE.len()..]);
                 // Chop off leading/trailing whitespace to work around
                 // semi-buggy build scripts which are shared in
                 // makefiles/configure scripts (where spaces are far more
                 // lenient)
-                let mut t = Tool::with_clang_driver(
+                let mut t = Tool::with_args(
                     tool,
-                    driver_mode,
+                    args.clone(),
                     &self.build_cache.cached_compiler_family,
                     &self.cargo_output,
                     out_dir,
@@ -2729,6 +2821,13 @@ impl Build {
                     format!("arm-kmc-eabi-{}", gnu)
                 } else if target.arch == "aarch64" && target.vendor == "kmc" {
                     format!("aarch64-kmc-elf-{}", gnu)
+                } else if target.os == "nto" {
+                    // See for details: https://github.com/rust-lang/cc-rs/pull/1319
+                    if self.cpp {
+                        "q++".to_string()
+                    } else {
+                        "qcc".to_string()
+                    }
                 } else if self.get_is_cross_compile()? {
                     let prefix = self.prefix_for_target(&raw_target);
                     match prefix {
@@ -2766,7 +2865,7 @@ impl Build {
             };
             let mut nvcc_tool = Tool::with_features(
                 nvcc,
-                None,
+                vec![],
                 self.cuda,
                 &self.build_cache.cached_compiler_family,
                 &self.cargo_output,
@@ -2776,6 +2875,9 @@ impl Build {
                 nvcc_tool
                     .args
                     .push(format!("-ccbin={}", tool.path.display()).into());
+            }
+            if let Some(cc_wrapper) = self.rustc_wrapper_fallback() {
+                nvcc_tool.cc_wrapper_path = Some(Path::new(&cc_wrapper).to_owned());
             }
             nvcc_tool.family = tool.family;
             nvcc_tool
@@ -2919,10 +3021,7 @@ impl Build {
         }
 
         let mut parts = tool.split_whitespace();
-        let maybe_wrapper = match parts.next() {
-            Some(s) => s,
-            None => return None,
-        };
+        let maybe_wrapper = parts.next()?;
 
         let file_stem = Path::new(maybe_wrapper).file_stem()?.to_str()?;
         if known_wrappers.contains(&file_stem) {
@@ -3395,8 +3494,11 @@ impl Build {
 
     fn get_target(&self) -> Result<TargetInfo<'_>, Error> {
         match &self.target {
-            Some(t) => t.parse(),
-            None => self
+            Some(t) if Some(&**t) != self.getenv_unwrap_str("TARGET").ok().as_deref() => t.parse(),
+            // Fetch target information from environment if not set, or if the
+            // target was the same as the TARGET environment variable, in
+            // case the user did `build.target(&env::var("TARGET").unwrap())`.
+            _ => self
                 .build_cache
                 .target_info_parser
                 .parse_from_cargo_environment_variables(),
@@ -3642,7 +3744,7 @@ impl Build {
         Ok(Arc::from(OsStr::new(sdk_path.trim())))
     }
 
-    fn apple_sdk_root(&self, target: &TargetInfo) -> Result<Arc<OsStr>, Error> {
+    fn apple_sdk_root(&self, target: &TargetInfo<'_>) -> Result<Arc<OsStr>, Error> {
         let sdk = target.apple_sdk_name();
 
         if let Some(ret) = self
@@ -3899,7 +4001,7 @@ impl Default for Build {
 }
 
 fn fail(s: &str) -> ! {
-    eprintln!("\n\nerror occurred: {}\n\n", s);
+    eprintln!("\n\nerror occurred in cc-rs: {}\n\n", s);
     std::process::exit(1);
 }
 
@@ -4021,6 +4123,50 @@ impl AsmFileExt {
         }
         None
     }
+}
+
+/// Returns true if `cc` has been disabled by `CC_FORCE_DISABLE`.
+fn is_disabled() -> bool {
+    static CACHE: AtomicU8 = AtomicU8::new(0);
+
+    let val = CACHE.load(Relaxed);
+    // We manually cache the environment var, since we need it in some places
+    // where we don't have access to a `Build` instance.
+    #[allow(clippy::disallowed_methods)]
+    fn compute_is_disabled() -> bool {
+        match std::env::var_os("CC_FORCE_DISABLE") {
+            // Not set? Not disabled.
+            None => false,
+            // Respect `CC_FORCE_DISABLE=0` and some simple synonyms, otherwise
+            // we're disabled. This intentionally includes `CC_FORCE_DISABLE=""`
+            Some(v) => &*v != "0" && &*v != "false" && &*v != "no",
+        }
+    }
+    match val {
+        2 => true,
+        1 => false,
+        0 => {
+            let truth = compute_is_disabled();
+            let encoded_truth = if truth { 2u8 } else { 1 };
+            // Might race against another thread, but we'd both be setting the
+            // same value so it should be fine.
+            CACHE.store(encoded_truth, Relaxed);
+            truth
+        }
+        _ => unreachable!(),
+    }
+}
+
+/// Automates the `if is_disabled() { return error }` check and ensures
+/// we produce a consistent error message for it.
+fn check_disabled() -> Result<(), Error> {
+    if is_disabled() {
+        return Err(Error::new(
+            ErrorKind::Disabled,
+            "the `cc` crate's functionality has been disabled by the `CC_FORCE_DISABLE` environment variable."
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

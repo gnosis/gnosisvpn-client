@@ -3,7 +3,7 @@
 #[cfg(feature = "debug")]
 mod internals;
 
-use crate::error::ErrMode;
+use crate::error::ParserError;
 use crate::stream::Stream;
 use crate::Parser;
 
@@ -16,13 +16,13 @@ use crate::Parser;
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::Needed};
 /// # use winnow::token::take_while;
 /// # use winnow::stream::AsChar;
 /// # use winnow::prelude::*;
 /// use winnow::combinator::trace;
 ///
-/// fn short_alpha<'s>(s: &mut &'s [u8]) -> PResult<&'s [u8], InputError<&'s [u8]>> {
+/// fn short_alpha<'s>(s: &mut &'s [u8]) -> ModalResult<&'s [u8]> {
 ///   trace("short_alpha",
 ///     take_while(3..=6, AsChar::is_alpha)
 ///   ).parse_next(s)
@@ -31,13 +31,13 @@ use crate::Parser;
 /// assert_eq!(short_alpha.parse_peek(b"latin123"), Ok((&b"123"[..], &b"latin"[..])));
 /// assert_eq!(short_alpha.parse_peek(b"lengthy"), Ok((&b"y"[..], &b"length"[..])));
 /// assert_eq!(short_alpha.parse_peek(b"latin"), Ok((&b""[..], &b"latin"[..])));
-/// assert_eq!(short_alpha.parse_peek(b"ed"), Err(ErrMode::Backtrack(InputError::new(&b"ed"[..], ErrorKind::Slice))));
-/// assert_eq!(short_alpha.parse_peek(b"12345"), Err(ErrMode::Backtrack(InputError::new(&b"12345"[..], ErrorKind::Slice))));
+/// assert!(short_alpha.parse_peek(b"ed").is_err());
+/// assert!(short_alpha.parse_peek(b"12345").is_err());
 /// ```
 #[cfg_attr(not(feature = "debug"), allow(unused_variables))]
 #[cfg_attr(not(feature = "debug"), allow(unused_mut))]
 #[cfg_attr(not(feature = "debug"), inline(always))]
-pub fn trace<I: Stream, O, E>(
+pub fn trace<I: Stream, O, E: ParserError<I>>(
     name: impl crate::lib::std::fmt::Display,
     parser: impl Parser<I, O, E>,
 ) -> impl Parser<I, O, E> {
@@ -52,9 +52,9 @@ pub fn trace<I: Stream, O, E>(
 }
 
 #[cfg_attr(not(feature = "debug"), allow(unused_variables))]
-pub(crate) fn trace_result<T, E>(
+pub(crate) fn trace_result<T, I: Stream, E: ParserError<I>>(
     name: impl crate::lib::std::fmt::Display,
-    res: &Result<T, ErrMode<E>>,
+    res: &Result<T, E>,
 ) {
     #[cfg(feature = "debug")]
     {
@@ -92,5 +92,5 @@ fn example() {
             .with_current_dir(current_dir)
             .with_env("CLICOLOR_FORCE", "1"),
     )
-    .test("assets/trace.svg", [cmd.as_str()]);
+    .test("assets/trace.svg", [format!(r#"{cmd} '"abc"'"#).as_str()]);
 }

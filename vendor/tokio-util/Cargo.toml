@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.70"
 name = "tokio-util"
-version = "0.7.12"
+version = "0.7.13"
 authors = ["Tokio Contributors <team@tokio.rs>"]
 build = false
 autobins = false
@@ -180,7 +180,7 @@ version = "1.28.0"
 features = ["sync"]
 
 [dependencies.tracing]
-version = "0.1.25"
+version = "0.1.29"
 features = ["std"]
 optional = true
 default-features = false

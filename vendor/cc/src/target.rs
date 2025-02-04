@@ -44,7 +44,10 @@ pub(crate) struct TargetInfo<'a> {
     /// This is the same as the value of `cfg!(target_abi)`.
     pub abi: &'a str,
     /// The unversioned LLVM/Clang target triple.
-    unversioned_llvm_target: &'a str,
+    ///
+    /// NOTE: You should never need to match on this explicitly, use the other
+    /// fields on [`TargetInfo`] instead.
+    pub llvm_target: &'a str,
 }
 
 impl FromStr for TargetInfo<'_> {
@@ -59,8 +62,20 @@ impl FromStr for TargetInfo<'_> {
             Ok(info.clone())
         } else {
             Err(Error::new(
-                ErrorKind::InvalidTarget,
-                format!("unknown target `{target_triple}`"),
+                ErrorKind::UnknownTarget,
+                format!(
+                    "unknown target `{target_triple}`.
+
+NOTE: `cc-rs` only supports a fixed set of targets when not in a build script.
+- If adding a new target, you will need to fork of `cc-rs` until the target
+  has landed on nightly and the auto-generated list has been updated. See also
+  the `rustc` dev guide on adding a new target:
+  https://rustc-dev-guide.rust-lang.org/building/new-target.html
+- If using a custom target, prefer to upstream it to `rustc` if possible,
+  otherwise open an issue with `cc-rs`:
+  https://github.com/rust-lang/cc-rs/issues/new
+"
+                ),
             ))
         }
     }

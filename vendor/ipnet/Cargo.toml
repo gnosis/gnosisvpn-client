@@ -12,9 +12,10 @@
 [package]
 edition = "2018"
 name = "ipnet"
-version = "2.10.1"
+version = "2.11.0"
 authors = ["Kris Price <kris@krisprice.nz>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

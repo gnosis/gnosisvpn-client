@@ -86,7 +86,7 @@
 //! a different thread.
 
 // Proc-macro2 types in rustdoc of other crates get linked to here.
-#![doc(html_root_url = "https://docs.rs/proc-macro2/1.0.86")]
+#![doc(html_root_url = "https://docs.rs/proc-macro2/1.0.93")]
 #![cfg_attr(any(proc_macro_span, super_unstable), feature(proc_macro_span))]
 #![cfg_attr(super_unstable, feature(proc_macro_def_site))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -102,9 +102,11 @@
     clippy::let_underscore_untyped,
     clippy::manual_assert,
     clippy::manual_range_contains,
+    clippy::missing_panics_doc,
     clippy::missing_safety_doc,
     clippy::must_use_candidate,
     clippy::needless_doctest_main,
+    clippy::needless_lifetimes,
     clippy::new_without_default,
     clippy::return_self_not_must_use,
     clippy::shadow_unrelated,
@@ -207,7 +209,7 @@ impl TokenStream {
 
     fn _new_fallback(inner: fallback::TokenStream) -> Self {
         TokenStream {
-            inner: inner.into(),
+            inner: imp::TokenStream::from(inner),
             _marker: MARKER,
         }
     }
@@ -243,11 +245,13 @@ impl FromStr for TokenStream {
     type Err = LexError;
 
     fn from_str(src: &str) -> Result<TokenStream, LexError> {
-        let e = src.parse().map_err(|e| LexError {
-            inner: e,
-            _marker: MARKER,
-        })?;
-        Ok(TokenStream::_new(e))
+        match imp::TokenStream::from_str_checked(src) {
+            Ok(tokens) => Ok(TokenStream::_new(tokens)),
+            Err(lex) => Err(LexError {
+                inner: lex,
+                _marker: MARKER,
+            }),
+        }
     }
 }
 
@@ -255,7 +259,7 @@ impl FromStr for TokenStream {
 #[cfg_attr(docsrs, doc(cfg(feature = "proc-macro")))]
 impl From<proc_macro::TokenStream> for TokenStream {
     fn from(inner: proc_macro::TokenStream) -> Self {
-        TokenStream::_new(inner.into())
+        TokenStream::_new(imp::TokenStream::from(inner))
     }
 }
 
@@ -263,7 +267,7 @@ impl From<proc_macro::TokenStream> for TokenStream {
 #[cfg_attr(docsrs, doc(cfg(feature = "proc-macro")))]
 impl From<TokenStream> for proc_macro::TokenStream {
     fn from(inner: TokenStream) -> Self {
-        inner.inner.into()
+        proc_macro::TokenStream::from(inner.inner)
     }
 }
 
@@ -403,7 +407,7 @@ impl Span {
 
     fn _new_fallback(inner: fallback::Span) -> Self {
         Span {
-            inner: inner.into(),
+            inner: imp::Span::from(inner),
             _marker: MARKER,
         }
     }
@@ -707,7 +711,7 @@ impl Group {
 
     fn _new_fallback(inner: fallback::Group) -> Self {
         Group {
-            inner: inner.into(),
+            inner: imp::Group::from(inner),
         }
     }
 
@@ -833,10 +837,16 @@ impl Punct {
     /// The returned `Punct` will have the default span of `Span::call_site()`
     /// which can be further configured with the `set_span` method below.
     pub fn new(ch: char, spacing: Spacing) -> Self {
-        Punct {
-            ch,
-            spacing,
-            span: Span::call_site(),
+        if let '!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';'
+        | '<' | '=' | '>' | '?' | '@' | '^' | '|' | '~' = ch
+        {
+            Punct {
+                ch,
+                spacing,
+                span: Span::call_site(),
+            }
+        } else {
+            panic!("unsupported proc macro punctuation character {:?}", ch);
         }
     }
 
@@ -957,6 +967,13 @@ impl Ident {
     fn _new(inner: imp::Ident) -> Self {
         Ident {
             inner,
+            _marker: MARKER,
+        }
+    }
+
+    fn _new_fallback(inner: fallback::Ident) -> Self {
+        Ident {
+            inner: imp::Ident::from(inner),
             _marker: MARKER,
         }
     }
@@ -1130,7 +1147,7 @@ impl Literal {
 
     fn _new_fallback(inner: fallback::Literal) -> Self {
         Literal {
-            inner: inner.into(),
+            inner: imp::Literal::from(inner),
             _marker: MARKER,
         }
     }
@@ -1299,10 +1316,13 @@ impl FromStr for Literal {
     type Err = LexError;
 
     fn from_str(repr: &str) -> Result<Self, LexError> {
-        repr.parse().map(Literal::_new).map_err(|inner| LexError {
-            inner,
-            _marker: MARKER,
-        })
+        match imp::Literal::from_str_checked(repr) {
+            Ok(lit) => Ok(Literal::_new(lit)),
+            Err(lex) => Err(LexError {
+                inner: lex,
+                _marker: MARKER,
+            }),
+        }
     }
 }
 

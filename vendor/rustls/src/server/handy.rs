@@ -1,8 +1,8 @@
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::fmt::Debug;
 
 use crate::server::ClientHello;
+use crate::sync::Arc;
 use crate::{server, sign};
 
 /// Something which never stores sessions.
@@ -26,11 +26,11 @@ impl server::StoresServerSessions for NoServerSessionStorage {
 
 #[cfg(any(feature = "std", feature = "hashbrown"))]
 mod cache {
-    use alloc::sync::Arc;
     use alloc::vec::Vec;
     use core::fmt::{Debug, Formatter};
 
     use crate::lock::Mutex;
+    use crate::sync::Arc;
     use crate::{limited_cache, server};
 
     /// An implementer of `StoresServerSessions` that stores everything
@@ -200,9 +200,9 @@ impl server::ResolvesServerCert for AlwaysResolvesChain {
 }
 
 /// An exemplar `ResolvesServerCert` implementation that always resolves to a single
-/// [RFC 7250] raw public key.  
+/// [RFC 7250] raw public key.
 ///
-/// [RFC 7250]: https://tools.ietf.org/html/rfc7250  
+/// [RFC 7250]: https://tools.ietf.org/html/rfc7250
 #[derive(Clone, Debug)]
 pub struct AlwaysResolvesServerRawPublicKeys(Arc<sign::CertifiedKey>);
 
@@ -226,7 +226,6 @@ impl server::ResolvesServerCert for AlwaysResolvesServerRawPublicKeys {
 #[cfg(any(feature = "std", feature = "hashbrown"))]
 mod sni_resolver {
     use alloc::string::{String, ToString};
-    use alloc::sync::Arc;
     use core::fmt::Debug;
 
     use pki_types::{DnsName, ServerName};
@@ -234,6 +233,7 @@ mod sni_resolver {
     use crate::error::Error;
     use crate::hash_map::HashMap;
     use crate::server::ClientHello;
+    use crate::sync::Arc;
     use crate::webpki::{verify_server_name, ParsedCertificate};
     use crate::{server, sign};
 
@@ -306,7 +306,15 @@ mod sni_resolver {
         fn test_resolvesservercertusingsni_requires_sni() {
             let rscsni = ResolvesServerCertUsingSni::new();
             assert!(rscsni
-                .resolve(ClientHello::new(&None, &[], None, None, None, &[]))
+                .resolve(ClientHello {
+                    server_name: &None,
+                    signature_schemes: &[],
+                    alpn: None,
+                    server_cert_types: None,
+                    client_cert_types: None,
+                    cipher_suites: &[],
+                    certificate_authorities: None,
+                })
                 .is_none());
         }
 
@@ -317,7 +325,15 @@ mod sni_resolver {
                 .unwrap()
                 .to_owned();
             assert!(rscsni
-                .resolve(ClientHello::new(&Some(name), &[], None, None, None, &[]))
+                .resolve(ClientHello {
+                    server_name: &Some(name),
+                    signature_schemes: &[],
+                    alpn: None,
+                    server_cert_types: None,
+                    client_cert_types: None,
+                    cipher_suites: &[],
+                    certificate_authorities: None,
+                })
                 .is_none());
         }
     }

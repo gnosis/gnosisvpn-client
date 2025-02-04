@@ -11,40 +11,53 @@ pub trait RawStream:
 {
 }
 
+impl<T: RawStream + ?Sized> RawStream for &mut T {}
+impl<T: RawStream + ?Sized> RawStream for Box<T> {}
+
 impl RawStream for std::io::Stdout {}
 
 impl RawStream for std::io::StdoutLock<'_> {}
-
-impl RawStream for &'_ mut std::io::StdoutLock<'_> {}
 
 impl RawStream for std::io::Stderr {}
 
 impl RawStream for std::io::StderrLock<'_> {}
 
-impl RawStream for &'_ mut std::io::StderrLock<'_> {}
-
-impl RawStream for Box<dyn std::io::Write> {}
-
-impl RawStream for &'_ mut Box<dyn std::io::Write> {}
+impl RawStream for dyn std::io::Write {}
+impl RawStream for dyn std::io::Write + Send {}
+impl RawStream for dyn std::io::Write + Send + Sync {}
 
 impl RawStream for Vec<u8> {}
 
-impl RawStream for &'_ mut Vec<u8> {}
-
 impl RawStream for std::fs::File {}
-
-impl RawStream for &'_ mut std::fs::File {}
 
 #[allow(deprecated)]
 impl RawStream for crate::Buffer {}
-
-#[allow(deprecated)]
-impl RawStream for &'_ mut crate::Buffer {}
 
 /// Trait to determine if a descriptor/handle refers to a terminal/tty.
 pub trait IsTerminal: private::Sealed {
     /// Returns `true` if the descriptor/handle refers to a terminal/tty.
     fn is_terminal(&self) -> bool;
+}
+
+impl<T: IsTerminal + ?Sized> IsTerminal for &T {
+    #[inline]
+    fn is_terminal(&self) -> bool {
+        (**self).is_terminal()
+    }
+}
+
+impl<T: IsTerminal + ?Sized> IsTerminal for &mut T {
+    #[inline]
+    fn is_terminal(&self) -> bool {
+        (**self).is_terminal()
+    }
+}
+
+impl<T: IsTerminal + ?Sized> IsTerminal for Box<T> {
+    #[inline]
+    fn is_terminal(&self) -> bool {
+        (**self).is_terminal()
+    }
 }
 
 impl IsTerminal for std::io::Stdout {
@@ -58,13 +71,6 @@ impl IsTerminal for std::io::StdoutLock<'_> {
     #[inline]
     fn is_terminal(&self) -> bool {
         is_terminal_polyfill::IsTerminal::is_terminal(self)
-    }
-}
-
-impl IsTerminal for &'_ mut std::io::StdoutLock<'_> {
-    #[inline]
-    fn is_terminal(&self) -> bool {
-        (**self).is_terminal()
     }
 }
 
@@ -82,21 +88,21 @@ impl IsTerminal for std::io::StderrLock<'_> {
     }
 }
 
-impl IsTerminal for &'_ mut std::io::StderrLock<'_> {
-    #[inline]
-    fn is_terminal(&self) -> bool {
-        (**self).is_terminal()
-    }
-}
-
-impl IsTerminal for Box<dyn std::io::Write> {
+impl IsTerminal for dyn std::io::Write {
     #[inline]
     fn is_terminal(&self) -> bool {
         false
     }
 }
 
-impl IsTerminal for &'_ mut Box<dyn std::io::Write> {
+impl IsTerminal for dyn std::io::Write + Send {
+    #[inline]
+    fn is_terminal(&self) -> bool {
+        false
+    }
+}
+
+impl IsTerminal for dyn std::io::Write + Send + Sync {
     #[inline]
     fn is_terminal(&self) -> bool {
         false
@@ -110,24 +116,10 @@ impl IsTerminal for Vec<u8> {
     }
 }
 
-impl IsTerminal for &'_ mut Vec<u8> {
-    #[inline]
-    fn is_terminal(&self) -> bool {
-        false
-    }
-}
-
 impl IsTerminal for std::fs::File {
     #[inline]
     fn is_terminal(&self) -> bool {
         is_terminal_polyfill::IsTerminal::is_terminal(self)
-    }
-}
-
-impl IsTerminal for &'_ mut std::fs::File {
-    #[inline]
-    fn is_terminal(&self) -> bool {
-        (**self).is_terminal()
     }
 }
 
@@ -136,14 +128,6 @@ impl IsTerminal for crate::Buffer {
     #[inline]
     fn is_terminal(&self) -> bool {
         false
-    }
-}
-
-#[allow(deprecated)]
-impl IsTerminal for &'_ mut crate::Buffer {
-    #[inline]
-    fn is_terminal(&self) -> bool {
-        (**self).is_terminal()
     }
 }
 
@@ -156,6 +140,30 @@ pub trait AsLockedWrite: private::Sealed {
 
     /// Lock a stream
     fn as_locked_write(&mut self) -> Self::Write<'_>;
+}
+
+impl<T: AsLockedWrite + ?Sized> AsLockedWrite for &mut T {
+    type Write<'w>
+        = T::Write<'w>
+    where
+        Self: 'w;
+
+    #[inline]
+    fn as_locked_write(&mut self) -> Self::Write<'_> {
+        (**self).as_locked_write()
+    }
+}
+
+impl<T: AsLockedWrite + ?Sized> AsLockedWrite for Box<T> {
+    type Write<'w>
+        = T::Write<'w>
+    where
+        Self: 'w;
+
+    #[inline]
+    fn as_locked_write(&mut self) -> Self::Write<'_> {
+        (**self).as_locked_write()
+    }
 }
 
 impl AsLockedWrite for std::io::Stdout {
@@ -194,7 +202,25 @@ impl AsLockedWrite for std::io::StderrLock<'static> {
     }
 }
 
-impl AsLockedWrite for Box<dyn std::io::Write> {
+impl AsLockedWrite for dyn std::io::Write {
+    type Write<'w> = &'w mut Self;
+
+    #[inline]
+    fn as_locked_write(&mut self) -> Self::Write<'_> {
+        self
+    }
+}
+
+impl AsLockedWrite for dyn std::io::Write + Send {
+    type Write<'w> = &'w mut Self;
+
+    #[inline]
+    fn as_locked_write(&mut self) -> Self::Write<'_> {
+        self
+    }
+}
+
+impl AsLockedWrite for dyn std::io::Write + Send + Sync {
     type Write<'w> = &'w mut Self;
 
     #[inline]
@@ -234,33 +260,56 @@ impl AsLockedWrite for crate::Buffer {
 mod private {
     pub trait Sealed {}
 
+    impl<T: Sealed + ?Sized> Sealed for &T {}
+    impl<T: Sealed + ?Sized> Sealed for &mut T {}
+    impl<T: Sealed + ?Sized> Sealed for Box<T> {}
+
     impl Sealed for std::io::Stdout {}
 
     impl Sealed for std::io::StdoutLock<'_> {}
-
-    impl Sealed for &'_ mut std::io::StdoutLock<'_> {}
 
     impl Sealed for std::io::Stderr {}
 
     impl Sealed for std::io::StderrLock<'_> {}
 
-    impl Sealed for &'_ mut std::io::StderrLock<'_> {}
-
-    impl Sealed for Box<dyn std::io::Write> {}
-
-    impl Sealed for &'_ mut Box<dyn std::io::Write> {}
+    impl Sealed for dyn std::io::Write {}
+    impl Sealed for dyn std::io::Write + Send {}
+    impl Sealed for dyn std::io::Write + Send + Sync {}
 
     impl Sealed for Vec<u8> {}
 
-    impl Sealed for &'_ mut Vec<u8> {}
-
     impl Sealed for std::fs::File {}
-
-    impl Sealed for &'_ mut std::fs::File {}
 
     #[allow(deprecated)]
     impl Sealed for crate::Buffer {}
+}
 
-    #[allow(deprecated)]
-    impl Sealed for &'_ mut crate::Buffer {}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_raw_stream<T: RawStream>()
+    where
+        crate::AutoStream<T>: std::io::Write,
+    {
+    }
+
+    #[test]
+    fn test() {
+        assert_raw_stream::<Box<dyn std::io::Write>>();
+        assert_raw_stream::<Box<dyn std::io::Write + 'static>>();
+        assert_raw_stream::<Box<dyn std::io::Write + Send>>();
+        assert_raw_stream::<Box<dyn std::io::Write + Send + Sync>>();
+
+        assert_raw_stream::<&mut (dyn std::io::Write)>();
+        assert_raw_stream::<&mut (dyn std::io::Write + 'static)>();
+        assert_raw_stream::<&mut (dyn std::io::Write + Send)>();
+        assert_raw_stream::<&mut (dyn std::io::Write + Send + Sync)>();
+
+        assert_raw_stream::<Vec<u8>>();
+        assert_raw_stream::<&mut Vec<u8>>();
+
+        assert_raw_stream::<std::fs::File>();
+        assert_raw_stream::<&mut std::fs::File>();
+    }
 }

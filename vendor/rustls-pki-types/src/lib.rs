@@ -83,6 +83,7 @@ use std::time::SystemTime;
 #[cfg(all(target_family = "wasm", target_os = "unknown", feature = "web"))]
 use web_time::SystemTime;
 
+pub mod alg_id;
 mod base64;
 mod server_name;
 
@@ -94,6 +95,7 @@ mod server_name;
 #[cfg(feature = "alloc")]
 pub mod pem;
 
+pub use alg_id::AlgorithmIdentifier;
 pub use server_name::{
     AddrParseError, DnsName, InvalidDnsNameError, IpAddr, Ipv4Addr, Ipv6Addr, ServerName,
 };
@@ -118,7 +120,6 @@ pub use server_name::{
 /// assert!(matches!(sec1, PrivateKeyDer::Sec1(_)));
 /// # }
 /// ```
-
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Eq)]
 pub enum PrivateKeyDer<'a> {
@@ -130,7 +131,7 @@ pub enum PrivateKeyDer<'a> {
     Pkcs8(PrivatePkcs8KeyDer<'a>),
 }
 
-impl<'a> PrivateKeyDer<'a> {
+impl PrivateKeyDer<'_> {
     /// Clone the private key to a `'static` value
     #[cfg(feature = "alloc")]
     pub fn clone_key(&self) -> PrivateKeyDer<'static> {
@@ -267,7 +268,7 @@ impl<'a> TryFrom<&'a [u8]> for PrivateKeyDer<'a> {
 static INVALID_KEY_DER_ERR: &str = "unknown or invalid key format";
 
 #[cfg(feature = "alloc")]
-impl<'a> TryFrom<Vec<u8>> for PrivateKeyDer<'a> {
+impl TryFrom<Vec<u8>> for PrivateKeyDer<'_> {
     type Error = &'static str;
 
     fn try_from(key: Vec<u8>) -> Result<Self, Self::Error> {
@@ -324,7 +325,7 @@ impl<'a> From<&'a [u8]> for PrivatePkcs1KeyDer<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for PrivatePkcs1KeyDer<'a> {
+impl From<Vec<u8>> for PrivatePkcs1KeyDer<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(Der(BytesInner::Owned(vec)))
     }
@@ -384,7 +385,7 @@ impl<'a> From<&'a [u8]> for PrivateSec1KeyDer<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for PrivateSec1KeyDer<'a> {
+impl From<Vec<u8>> for PrivateSec1KeyDer<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(Der(BytesInner::Owned(vec)))
     }
@@ -445,7 +446,7 @@ impl<'a> From<&'a [u8]> for PrivatePkcs8KeyDer<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for PrivatePkcs8KeyDer<'a> {
+impl From<Vec<u8>> for PrivatePkcs8KeyDer<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(Der(BytesInner::Owned(vec)))
     }
@@ -551,7 +552,7 @@ impl<'a> From<&'a [u8]> for CertificateRevocationListDer<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for CertificateRevocationListDer<'a> {
+impl From<Vec<u8>> for CertificateRevocationListDer<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(Der::from(vec))
     }
@@ -603,7 +604,7 @@ impl<'a> From<&'a [u8]> for CertificateSigningRequestDer<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for CertificateSigningRequestDer<'a> {
+impl From<Vec<u8>> for CertificateSigningRequestDer<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(Der::from(vec))
     }
@@ -671,7 +672,7 @@ impl<'a> From<&'a [u8]> for CertificateDer<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for CertificateDer<'a> {
+impl From<Vec<u8>> for CertificateDer<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(Der::from(vec))
     }
@@ -734,7 +735,7 @@ impl<'a> From<&'a [u8]> for SubjectPublicKeyInfoDer<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for SubjectPublicKeyInfoDer<'a> {
+impl From<Vec<u8>> for SubjectPublicKeyInfoDer<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(Der::from(vec))
     }
@@ -837,7 +838,7 @@ impl<'a> From<&'a [u8]> for EchConfigListBytes<'a> {
 }
 
 #[cfg(feature = "alloc")]
-impl<'a> From<Vec<u8>> for EchConfigListBytes<'a> {
+impl From<Vec<u8>> for EchConfigListBytes<'_> {
     fn from(vec: Vec<u8>) -> Self {
         Self(BytesInner::Owned(vec))
     }
@@ -899,65 +900,6 @@ pub trait SignatureVerificationAlgorithm: Send + Sync + fmt::Debug {
 /// A detail-less error when a signature is not valid.
 #[derive(Debug, Copy, Clone)]
 pub struct InvalidSignature;
-
-/// A DER encoding of the PKIX AlgorithmIdentifier type:
-///
-/// ```ASN.1
-/// AlgorithmIdentifier  ::=  SEQUENCE  {
-///     algorithm               OBJECT IDENTIFIER,
-///     parameters              ANY DEFINED BY algorithm OPTIONAL  }
-///                                -- contains a value of the type
-///                                -- registered for use with the
-///                                -- algorithm object identifier value
-/// ```
-/// (from <https://www.rfc-editor.org/rfc/rfc5280#section-4.1.1.2>)
-///
-/// The outer sequence encoding is *not included*, so this is the DER encoding
-/// of an OID for `algorithm` plus the `parameters` value.
-///
-/// For example, this is the `rsaEncryption` algorithm:
-///
-/// ```
-/// let rsa_encryption = rustls_pki_types::AlgorithmIdentifier::from_slice(
-///     &[
-///         // algorithm: 1.2.840.113549.1.1.1
-///         0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
-///         // parameters: NULL
-///         0x05, 0x00
-///     ]
-/// );
-/// ```
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct AlgorithmIdentifier(&'static [u8]);
-
-impl AlgorithmIdentifier {
-    /// Makes a new `AlgorithmIdentifier` from a static octet slice.
-    ///
-    /// This does not validate the contents of the slice.
-    pub const fn from_slice(bytes: &'static [u8]) -> Self {
-        Self(bytes)
-    }
-}
-
-impl AsRef<[u8]> for AlgorithmIdentifier {
-    fn as_ref(&self) -> &[u8] {
-        self.0
-    }
-}
-
-impl fmt::Debug for AlgorithmIdentifier {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        hex(f, self.0)
-    }
-}
-
-impl Deref for AlgorithmIdentifier {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
 
 /// A timestamp, tracking the number of non-leap seconds since the Unix epoch.
 ///

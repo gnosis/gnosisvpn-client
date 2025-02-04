@@ -215,30 +215,41 @@ fn shared_export<'a>(
 }
 
 fn shared_function<'a>(func: &'a ast::Function, _intern: &'a Interner) -> Function<'a> {
-    let arg_names = func
-        .arguments
-        .iter()
-        .enumerate()
-        .map(|(idx, arg)| {
-            if let syn::Pat::Ident(x) = &*arg.pat {
-                return x.ident.unraw().to_string();
-            }
-            format!("arg{}", idx)
-        })
-        .collect::<Vec<_>>();
+    let args =
+        func.arguments
+            .iter()
+            .enumerate()
+            .map(|(idx, arg)| FunctionArgumentData {
+                // use argument's "js_name" if it was provided via attributes
+                // if not use the original Rust argument ident
+                name: arg.js_name.clone().unwrap_or(
+                    if let syn::Pat::Ident(x) = &*arg.pat_type.pat {
+                        x.ident.unraw().to_string()
+                    } else {
+                        format!("arg{}", idx)
+                    },
+                ),
+                ty_override: arg.js_type.as_deref(),
+                desc: arg.desc.as_deref(),
+            })
+            .collect::<Vec<_>>();
+
     Function {
-        arg_names,
+        args,
         asyncness: func.r#async,
         name: &func.name,
         generate_typescript: func.generate_typescript,
         generate_jsdoc: func.generate_jsdoc,
         variadic: func.variadic,
+        ret_ty_override: func.ret.as_ref().and_then(|v| v.js_type.as_deref()),
+        ret_desc: func.ret.as_ref().and_then(|v| v.desc.as_deref()),
     }
 }
 
 fn shared_enum<'a>(e: &'a ast::Enum, intern: &'a Interner) -> Enum<'a> {
     Enum {
         name: &e.js_name,
+        signed: e.signed,
         variants: e
             .variants
             .iter()
@@ -362,7 +373,9 @@ fn shared_import_type<'a>(i: &'a ast::ImportType, intern: &'a Interner) -> Impor
 fn shared_import_enum<'a>(i: &'a ast::StringEnum, _intern: &'a Interner) -> StringEnum<'a> {
     StringEnum {
         name: &i.js_name,
+        generate_typescript: i.generate_typescript,
         variant_values: i.variant_values.iter().map(|x| &**x).collect(),
+        comments: i.comments.iter().map(|s| &**s).collect(),
     }
 }
 
@@ -403,7 +416,7 @@ enum LitOrExpr<'a> {
     Lit(&'a str),
 }
 
-impl<'a> Encode for LitOrExpr<'a> {
+impl Encode for LitOrExpr<'_> {
     fn encode(&self, dst: &mut Encoder) {
         match self {
             LitOrExpr::Expr(expr) => {
@@ -465,14 +478,14 @@ impl Encode for usize {
     }
 }
 
-impl<'a> Encode for &'a [u8] {
+impl Encode for &[u8] {
     fn encode(&self, dst: &mut Encoder) {
         self.len().encode(dst);
         dst.extend_from_slice(self);
     }
 }
 
-impl<'a> Encode for &'a str {
+impl Encode for &str {
     fn encode(&self, dst: &mut Encoder) {
         self.as_bytes().encode(dst);
     }

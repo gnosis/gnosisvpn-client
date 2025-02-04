@@ -40,7 +40,7 @@ bitflags! {
         const SYMLINK_NOFOLLOW = bitcast!(c::AT_SYMLINK_NOFOLLOW);
 
         /// `AT_EACCESS`
-        #[cfg(not(any(target_os = "emscripten", target_os = "android")))]
+        #[cfg(not(target_os = "android"))]
         const EACCESS = bitcast!(c::AT_EACCESS);
 
         /// `AT_REMOVEDIR`
@@ -270,6 +270,7 @@ bitflags! {
         #[cfg(any(
             linux_kernel,
             netbsdlike,
+            solarish,
             target_os = "emscripten",
             target_os = "wasi",
         ))]
@@ -333,7 +334,7 @@ bitflags! {
         /// Note that rustix and/or libc will automatically set this flag when appropriate on
         /// `open(2)` and friends, thus typical users do not need to care about it.
         /// It will may be reported in return of `fcntl_getfl`, though.
-        #[cfg(any(linux_kernel, target_os = "illumos"))]
+        #[cfg(any(linux_kernel, solarish))]
         const LARGEFILE = bitcast!(c::O_LARGEFILE);
 
         /// <https://docs.rs/bitflags/*/bitflags/#externally-defined-flags>
@@ -562,7 +563,7 @@ impl FileType {
 #[cfg(not(any(
     apple,
     netbsdlike,
-    solarish,
+    target_os = "solaris",
     target_os = "dragonfly",
     target_os = "espidf",
     target_os = "haiku",
@@ -796,7 +797,6 @@ bitflags! {
 
 #[cfg(not(any(
     netbsdlike,
-    solarish,
     target_os = "espidf",
     target_os = "nto",
     target_os = "redox",
@@ -812,6 +812,7 @@ bitflags! {
         /// `FALLOC_FL_KEEP_SIZE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -821,6 +822,7 @@ bitflags! {
         /// `FALLOC_FL_PUNCH_HOLE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -830,6 +832,7 @@ bitflags! {
         /// `FALLOC_FL_NO_HIDE_STALE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "emscripten",
             target_os = "fuchsia",
@@ -843,6 +846,7 @@ bitflags! {
         /// `FALLOC_FL_COLLAPSE_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -853,6 +857,7 @@ bitflags! {
         /// `FALLOC_FL_ZERO_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -863,6 +868,7 @@ bitflags! {
         /// `FALLOC_FL_INSERT_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -873,6 +879,7 @@ bitflags! {
         /// `FALLOC_FL_UNSHARE_RANGE`
         #[cfg(not(any(
             bsd,
+            solarish,
             target_os = "aix",
             target_os = "haiku",
             target_os = "hurd",
@@ -942,22 +949,49 @@ bitflags! {
 ///
 /// [`flock`]: crate::fs::flock
 /// [`fcntl_lock`]: crate::fs::fcntl_lock
+// Solaris doesn't support `flock` and doesn't define `LOCK_SH` etc., but we
+// reuse this `FlockOperation` enum for `fcntl_lock`, so on Solaris we use
+// our own made-up integer values.
 #[cfg(not(any(target_os = "espidf", target_os = "vita", target_os = "wasi")))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum FlockOperation {
     /// `LOCK_SH`
+    #[cfg(not(target_os = "solaris"))]
     LockShared = bitcast!(c::LOCK_SH),
+    /// `LOCK_SH`
+    #[cfg(target_os = "solaris")]
+    LockShared = bitcast!(1),
     /// `LOCK_EX`
+    #[cfg(not(target_os = "solaris"))]
     LockExclusive = bitcast!(c::LOCK_EX),
+    /// `LOCK_EX`
+    #[cfg(target_os = "solaris")]
+    LockExclusive = bitcast!(2),
     /// `LOCK_UN`
+    #[cfg(not(target_os = "solaris"))]
     Unlock = bitcast!(c::LOCK_UN),
+    /// `LOCK_UN`
+    #[cfg(target_os = "solaris")]
+    Unlock = bitcast!(8),
     /// `LOCK_SH | LOCK_NB`
+    #[cfg(not(target_os = "solaris"))]
     NonBlockingLockShared = bitcast!(c::LOCK_SH | c::LOCK_NB),
+    /// `LOCK_SH | LOCK_NB`
+    #[cfg(target_os = "solaris")]
+    NonBlockingLockShared = bitcast!(1 | 4),
     /// `LOCK_EX | LOCK_NB`
+    #[cfg(not(target_os = "solaris"))]
     NonBlockingLockExclusive = bitcast!(c::LOCK_EX | c::LOCK_NB),
+    /// `LOCK_EX | LOCK_NB`
+    #[cfg(target_os = "solaris")]
+    NonBlockingLockExclusive = bitcast!(2 | 4),
     /// `LOCK_UN | LOCK_NB`
+    #[cfg(not(target_os = "solaris"))]
     NonBlockingUnlock = bitcast!(c::LOCK_UN | c::LOCK_NB),
+    /// `LOCK_UN | LOCK_NB`
+    #[cfg(target_os = "solaris")]
+    NonBlockingUnlock = bitcast!(8 | 4),
 }
 
 /// `struct stat` for use with [`statat`] and [`fstat`].

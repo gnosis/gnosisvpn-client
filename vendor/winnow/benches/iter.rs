@@ -3,7 +3,6 @@ use criterion::black_box;
 use winnow::combinator::opt;
 use winnow::prelude::*;
 use winnow::stream::AsChar;
-use winnow::stream::Stream as _;
 use winnow::token::one_of;
 
 fn iter(c: &mut criterion::Criterion) {
@@ -52,7 +51,7 @@ fn iter(c: &mut criterion::Criterion) {
     group.finish();
 }
 
-fn iterate(input: &mut &[u8]) -> PResult<usize> {
+fn iterate(input: &mut &[u8]) -> ModalResult<usize> {
     let mut count = 0;
     for byte in input.iter() {
         if byte.is_dec_digit() {
@@ -63,7 +62,7 @@ fn iterate(input: &mut &[u8]) -> PResult<usize> {
     Ok(count)
 }
 
-fn next_token(input: &mut &[u8]) -> PResult<usize> {
+fn next_token(input: &mut &[u8]) -> ModalResult<usize> {
     let mut count = 0;
     while let Some(byte) = input.next_token() {
         if byte.is_dec_digit() {
@@ -73,7 +72,7 @@ fn next_token(input: &mut &[u8]) -> PResult<usize> {
     Ok(count)
 }
 
-fn opt_one_of(input: &mut &[u8]) -> PResult<usize> {
+fn opt_one_of(input: &mut &[u8]) -> ModalResult<usize> {
     let mut count = 0;
     while !input.is_empty() {
         while opt(one_of(AsChar::is_dec_digit))
@@ -90,7 +89,7 @@ fn opt_one_of(input: &mut &[u8]) -> PResult<usize> {
     Ok(count)
 }
 
-fn take_while(input: &mut &[u8]) -> PResult<usize> {
+fn take_while(input: &mut &[u8]) -> ModalResult<usize> {
     let mut count = 0;
     while !input.is_empty() {
         count += winnow::token::take_while(0.., AsChar::is_dec_digit)
@@ -101,13 +100,14 @@ fn take_while(input: &mut &[u8]) -> PResult<usize> {
     Ok(count)
 }
 
-fn repeat(input: &mut &[u8]) -> PResult<usize> {
+fn repeat(input: &mut &[u8]) -> ModalResult<usize> {
     let mut count = 0;
     while !input.is_empty() {
         count += winnow::combinator::repeat(0.., one_of(AsChar::is_dec_digit))
             .map(|count: usize| count)
             .parse_next(input)?;
-        winnow::combinator::repeat(0.., one_of(|b: u8| !b.is_dec_digit())).parse_next(input)?;
+        let () =
+            winnow::combinator::repeat(0.., one_of(|b: u8| !b.is_dec_digit())).parse_next(input)?;
     }
     Ok(count)
 }

@@ -13,8 +13,9 @@
 edition = "2021"
 rust-version = "1.60"
 name = "rustls-pki-types"
-version = "1.10.0"
+version = "1.11.0"
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

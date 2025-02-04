@@ -13,13 +13,14 @@
 edition = "2021"
 rust-version = "1.57"
 name = "wasm-bindgen-futures"
-version = "0.4.45"
+version = "0.4.50"
 authors = ["The wasm-bindgen Developers"]
 build = false
 include = [
     "/LICENSE-*",
     "/src",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -51,24 +52,44 @@ optional = true
 default-features = false
 
 [dependencies.js-sys]
-version = "0.3.72"
+version = "=0.3.77"
+default-features = false
+
+[dependencies.once_cell]
+version = "1.12"
+default-features = false
 
 [dependencies.wasm-bindgen]
-version = "0.2.95"
+version = "=0.2.100"
+default-features = false
 
 [features]
+default = ["std"]
 futures-core-03-stream = ["futures-core"]
+std = [
+    "wasm-bindgen/std",
+    "js-sys/std",
+    "web-sys/std",
+]
 
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies.futures-channel-preview]
-version = "0.3.0-alpha.18"
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies.futures-channel]
+version = "0.3"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.futures-lite]
-version = "1.11.3"
+version = "2"
 default-features = false
 
 [target.'cfg(target_feature = "atomics")'.dependencies.web-sys]
-version = "0.3.24"
+version = "=0.3.77"
 features = [
     "MessageEvent",
     "Worker",
 ]
+default-features = false
+
+[lints.clippy]
+large_enum_variant = "allow"
+new_without_default = "allow"
+overly_complex_bool_expr = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"

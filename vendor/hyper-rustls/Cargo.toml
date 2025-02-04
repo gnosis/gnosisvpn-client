@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.71"
 name = "hyper-rustls"
-version = "0.27.3"
+version = "0.27.5"
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -100,7 +101,7 @@ version = "0.8"
 optional = true
 
 [dependencies.rustls-platform-verifier]
-version = "0.3"
+version = "0.5"
 optional = true
 
 [dependencies.tokio]
@@ -116,6 +117,9 @@ version = "0.3"
 [dependencies.webpki-roots]
 version = "0.26"
 optional = true
+
+[dev-dependencies.cfg-if]
+version = "1"
 
 [dev-dependencies.http-body-util]
 version = "0.1"

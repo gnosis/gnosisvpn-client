@@ -275,8 +275,17 @@ pub struct ImportStatic {
     pub js_name: String,
     /// Path to wasm_bindgen
     pub wasm_bindgen: Path,
-    /// [`true`] if using the new `thread_local` representation.
-    pub thread_local: bool,
+    /// Version of `thread_local`, if any.
+    pub thread_local: Option<ThreadLocal>,
+}
+
+/// Which version of the `thread_local` attribute is enabled.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ThreadLocal {
+    /// V1.
+    V1,
+    /// V2.
+    V2,
 }
 
 /// The type of a static string being imported
@@ -297,6 +306,8 @@ pub struct ImportString {
     pub js_sys: Path,
     /// The string to export.
     pub string: String,
+    /// Version of `thread_local`.
+    pub thread_local: ThreadLocal,
 }
 
 /// The metadata for a type being imported
@@ -343,8 +354,12 @@ pub struct StringEnum {
     pub variants: Vec<Ident>,
     /// The JS string values of the variants
     pub variant_values: Vec<String>,
+    /// The doc comments on this enum, if any
+    pub comments: Vec<String>,
     /// Attributes to apply to the Rust enum
     pub rust_attrs: Vec<syn::Attribute>,
+    /// Whether to generate a typescript definition for this enum
+    pub generate_typescript: bool,
     /// Path to wasm_bindgen
     pub wasm_bindgen: Path,
 }
@@ -360,9 +375,9 @@ pub struct Function {
     /// Whether the function has a js_name attribute
     pub renamed_via_js_name: bool,
     /// The arguments to the function
-    pub arguments: Vec<syn::PatType>,
-    /// The return type of the function, if provided
-    pub ret: Option<syn::Type>,
+    pub arguments: Vec<FunctionArgumentData>,
+    /// The data of return type of the function
+    pub ret: Option<FunctionReturnData>,
     /// Any custom attributes being applied to the function
     pub rust_attrs: Vec<syn::Attribute>,
     /// The visibility of this function in Rust
@@ -377,6 +392,32 @@ pub struct Function {
     pub generate_jsdoc: bool,
     /// Whether this is a function with a variadict parameter
     pub variadic: bool,
+}
+
+/// Information about a function's return
+#[cfg_attr(feature = "extra-traits", derive(Debug))]
+#[derive(Clone)]
+pub struct FunctionReturnData {
+    /// Specifies the type of the function's return
+    pub r#type: syn::Type,
+    /// Specifies the JS return type override
+    pub js_type: Option<String>,
+    /// Specifies the return description
+    pub desc: Option<String>,
+}
+
+/// Information about a function's argument
+#[cfg_attr(feature = "extra-traits", derive(Debug))]
+#[derive(Clone)]
+pub struct FunctionArgumentData {
+    /// Specifies the type of the function's argument
+    pub pat_type: syn::PatType,
+    /// Specifies the JS argument name override
+    pub js_name: Option<String>,
+    /// Specifies the JS function argument type override
+    pub js_type: Option<String>,
+    /// Specifies the argument description
+    pub desc: Option<String>,
 }
 
 /// Information about a Struct being exported
@@ -441,6 +482,9 @@ pub struct Enum {
     pub rust_name: Ident,
     /// The name of this enum in JS code
     pub js_name: String,
+    /// Whether the variant values and hole are signed, meaning that they
+    /// represent the bits of a `i32` value.
+    pub signed: bool,
     /// The variants provided by this enum
     pub variants: Vec<Variant>,
     /// The doc comments on this enum, if any

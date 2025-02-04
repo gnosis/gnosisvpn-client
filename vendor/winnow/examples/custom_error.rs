@@ -1,6 +1,5 @@
 use winnow::error::AddContext;
 use winnow::error::ErrMode;
-use winnow::error::ErrorKind;
 use winnow::error::FromExternalError;
 use winnow::error::ParserError;
 use winnow::prelude::*;
@@ -9,21 +8,22 @@ use winnow::stream::Stream;
 #[derive(Debug)]
 pub enum CustomError<I> {
     MyError,
-    Winnow(I, ErrorKind),
+    Winnow(I),
     External {
         cause: Box<dyn std::error::Error + Send + Sync + 'static>,
         input: I,
-        kind: ErrorKind,
     },
 }
 
 impl<I: Stream + Clone> ParserError<I> for CustomError<I> {
-    fn from_error_kind(input: &I, kind: ErrorKind) -> Self {
-        CustomError::Winnow(input.clone(), kind)
+    type Inner = Self;
+
+    fn from_input(input: &I) -> Self {
+        CustomError::Winnow(input.clone())
     }
 
-    fn append(self, _: &I, _: &<I as Stream>::Checkpoint, _: ErrorKind) -> Self {
-        self
+    fn into_inner(self) -> Result<Self::Inner, Self> {
+        Ok(self)
     }
 }
 
@@ -43,16 +43,15 @@ impl<I: Stream + Clone, E: std::error::Error + Send + Sync + 'static> FromExtern
     for CustomError<I>
 {
     #[inline]
-    fn from_external_error(input: &I, kind: ErrorKind, e: E) -> Self {
+    fn from_external_error(input: &I, e: E) -> Self {
         CustomError::External {
             cause: Box::new(e),
             input: input.clone(),
-            kind,
         }
     }
 }
 
-pub fn parse<'s>(_input: &mut &'s str) -> PResult<&'s str, CustomError<&'s str>> {
+pub fn parse<'s>(_input: &mut &'s str) -> ModalResult<&'s str, CustomError<&'s str>> {
     Err(ErrMode::Backtrack(CustomError::MyError))
 }
 

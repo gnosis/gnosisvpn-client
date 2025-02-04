@@ -13,13 +13,14 @@
 edition = "2021"
 rust-version = "1.57"
 name = "web-sys"
-version = "0.3.72"
+version = "0.3.77"
 authors = ["The wasm-bindgen Developers"]
 build = false
 include = [
     "/LICENSE-*",
     "/src",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -44,10 +45,12 @@ test = false
 doctest = false
 
 [dependencies.js-sys]
-version = "0.3.72"
+version = "=0.3.77"
+default-features = false
 
 [dependencies.wasm-bindgen]
-version = "0.2.95"
+version = "=0.2.100"
+default-features = false
 
 [features]
 AbortController = []
@@ -647,6 +650,8 @@ GpuComputePassEncoder = []
 GpuComputePassTimestampWrites = []
 GpuComputePipeline = []
 GpuComputePipelineDescriptor = []
+GpuCopyExternalImageDestInfo = []
+GpuCopyExternalImageSourceInfo = []
 GpuCullMode = []
 GpuDepthStencilState = []
 GpuDevice = ["EventTarget"]
@@ -663,11 +668,6 @@ GpuFeatureName = []
 GpuFilterMode = []
 GpuFragmentState = []
 GpuFrontFace = []
-GpuImageCopyBuffer = []
-GpuImageCopyExternalImage = []
-GpuImageCopyTexture = []
-GpuImageCopyTextureTagged = []
-GpuImageDataLayout = []
 GpuIndexFormat = []
 GpuInternalError = ["GpuError"]
 GpuLoadOp = []
@@ -719,6 +719,9 @@ GpuStorageTextureBindingLayout = []
 GpuStoreOp = []
 GpuSupportedFeatures = []
 GpuSupportedLimits = []
+GpuTexelCopyBufferInfo = []
+GpuTexelCopyBufferLayout = []
+GpuTexelCopyTextureInfo = []
 GpuTexture = []
 GpuTextureAspect = []
 GpuTextureBindingLayout = []
@@ -1304,6 +1307,11 @@ LockManager = []
 LockManagerSnapshot = []
 LockMode = []
 LockOptions = []
+MathMlElement = [
+    "Element",
+    "EventTarget",
+    "Node",
+]
 MediaCapabilities = []
 MediaCapabilitiesInfo = []
 MediaConfiguration = []
@@ -2729,14 +2737,26 @@ XrWebGlLayerInit = []
 XsltProcessor = []
 console = []
 css = []
+default = ["std"]
 gpu_buffer_usage = []
 gpu_color_write = []
 gpu_map_mode = []
 gpu_shader_stage = []
 gpu_texture_usage = []
+std = [
+    "wasm-bindgen/std",
+    "js-sys/std",
+]
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.futures]
 version = "0.3"
+
+[lints.clippy]
+large_enum_variant = "allow"
+new_without_default = "allow"
+overly_complex_bool_expr = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

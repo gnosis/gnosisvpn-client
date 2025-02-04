@@ -55,7 +55,7 @@ pub enum ServerName<'a> {
     IpAddress(IpAddr),
 }
 
-impl<'a> ServerName<'a> {
+impl ServerName<'_> {
     /// Produce an owned `ServerName` from this (potentially borrowed) `ServerName`.
     #[cfg(feature = "alloc")]
     pub fn to_owned(&self) -> ServerName<'static> {
@@ -78,7 +78,7 @@ impl<'a> ServerName<'a> {
     }
 }
 
-impl<'a> fmt::Debug for ServerName<'a> {
+impl fmt::Debug for ServerName<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::DnsName(d) => f.debug_tuple("DnsName").field(&d.as_ref()).finish(),
@@ -204,6 +204,14 @@ impl<'a> DnsName<'a> {
             Err(_) => Err(s),
         }
     }
+
+    /// Produces a borrowed [`DnsName`] from a borrowed [`str`].
+    pub const fn try_from_str(s: &str) -> Result<DnsName<'_>, InvalidDnsNameError> {
+        match validate(s.as_bytes()) {
+            Ok(_) => Ok(DnsName(DnsNameInner::Borrowed(s))),
+            Err(err) => Err(err),
+        }
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -219,8 +227,7 @@ impl<'a> TryFrom<&'a str> for DnsName<'a> {
     type Error = InvalidDnsNameError;
 
     fn try_from(value: &'a str) -> Result<Self, Self::Error> {
-        validate(value.as_bytes())?;
-        Ok(Self(DnsNameInner::Borrowed(value)))
+        DnsName::try_from_str(value)
     }
 }
 
@@ -233,7 +240,7 @@ impl<'a> TryFrom<&'a [u8]> for DnsName<'a> {
     }
 }
 
-impl<'a> AsRef<str> for DnsName<'a> {
+impl AsRef<str> for DnsName<'_> {
     fn as_ref(&self) -> &str {
         match self {
             Self(DnsNameInner::Borrowed(s)) => s,
@@ -250,7 +257,7 @@ enum DnsNameInner<'a> {
     Owned(String),
 }
 
-impl<'a> PartialEq<Self> for DnsNameInner<'a> {
+impl PartialEq<Self> for DnsNameInner<'_> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Borrowed(s), Self::Borrowed(o)) => s.eq_ignore_ascii_case(o),
@@ -264,7 +271,7 @@ impl<'a> PartialEq<Self> for DnsNameInner<'a> {
     }
 }
 
-impl<'a> Hash for DnsNameInner<'a> {
+impl Hash for DnsNameInner<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let s = match self {
             Self::Borrowed(s) => s,
@@ -276,7 +283,7 @@ impl<'a> Hash for DnsNameInner<'a> {
     }
 }
 
-impl<'a> fmt::Debug for DnsNameInner<'a> {
+impl fmt::Debug for DnsNameInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Borrowed(s) => f.write_fmt(format_args!("{:?}", s)),
@@ -300,7 +307,7 @@ impl fmt::Display for InvalidDnsNameError {
 #[cfg(feature = "std")]
 impl StdError for InvalidDnsNameError {}
 
-fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
+const fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
     enum State {
         Start,
         Next,
@@ -323,7 +330,9 @@ fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
         return Err(InvalidDnsNameError);
     }
 
-    for ch in input {
+    let mut idx = 0;
+    while idx < input.len() {
+        let ch = input[idx];
         state = match (state, ch) {
             (Start | Next | NextAfterNumericOnly | Hyphen { .. }, b'.') => {
                 return Err(InvalidDnsNameError)
@@ -349,6 +358,7 @@ fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
             ) => Subsequent { len: len + 1 },
             _ => return Err(InvalidDnsNameError),
         };
+        idx += 1;
     }
 
     if matches!(

@@ -13,10 +13,11 @@
 edition = "2018"
 rust-version = "1.36"
 name = "fastrand"
-version = "2.2.0"
+version = "2.3.0"
 authors = ["Stjepan Glavina <stjepang@gmail.com>"]
 build = false
 exclude = ["/.*"]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.71.1"
 name = "yoke"
-version = "0.7.4"
+version = "0.7.5"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
+build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,6 +26,10 @@ include = [
     "LICENSE",
     "README.md",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Abstraction allowing borrowed data to be carried along with the backing data it borrows from"
 readme = "README.md"
 keywords = [
@@ -52,6 +57,18 @@ all-features = true
 [package.metadata.workspaces]
 independent = true
 
+[lib]
+name = "yoke"
+path = "src/lib.rs"
+
+[[test]]
+name = "bincode"
+path = "tests/bincode.rs"
+
+[[test]]
+name = "miri"
+path = "tests/miri.rs"
+
 [dependencies.serde]
 version = "1.0.110"
 optional = true
@@ -62,7 +79,7 @@ version = "1.2.0"
 default-features = false
 
 [dependencies.yoke-derive]
-version = "0.7.4"
+version = "0.7.5"
 optional = true
 default-features = false
 

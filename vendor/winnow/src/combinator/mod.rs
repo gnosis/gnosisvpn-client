@@ -1,6 +1,10 @@
 //! # List of parsers and combinators
 //!
+//! <div class="warning">
+//!
 //! **Note**: this list is meant to provide a nicer way to find a parser than reading through the documentation on docs.rs. Function combinators are organized in module so they are a bit easier to find.
+//!
+//! </div>
 //!
 //! ## Basic elements
 //!
@@ -93,7 +97,7 @@
 //! - [`line_ending`][crate::ascii::line_ending]: Recognizes an end of line (both `\n` and `\r\n`)
 //! - [`newline`][crate::ascii::newline]: Matches a newline character `\n`
 //! - [`till_line_ending`][crate::ascii::till_line_ending]: Recognizes a string of any char except `\r` or `\n`
-//! - [`rest`]: Return the remaining input
+//! - [`rest`][crate::token::rest]: Return the remaining input
 //!
 //! - [`alpha0`][crate::ascii::alpha0]: Recognizes zero or more lowercase and uppercase alphabetic characters: `[a-zA-Z]`. [`alpha1`][crate::ascii::alpha1] does the same but returns at least one character
 //! - [`alphanumeric0`][crate::ascii::alphanumeric0]: Recognizes zero or more numerical and alphabetic characters: `[0-9a-zA-Z]`. [`alphanumeric1`][crate::ascii::alphanumeric1] does the same but returns at least one character
@@ -159,17 +163,17 @@ mod branch;
 mod core;
 mod debug;
 mod multi;
-mod parser;
 mod sequence;
 
 #[cfg(test)]
 mod tests;
 
+pub mod impls;
+
 pub use self::branch::*;
 pub use self::core::*;
 pub use self::debug::*;
 pub use self::multi::*;
-pub use self::parser::*;
 pub use self::sequence::*;
 
 #[allow(unused_imports)]

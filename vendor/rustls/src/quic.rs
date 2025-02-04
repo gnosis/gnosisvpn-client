@@ -17,7 +17,6 @@ use crate::tls13::Tls13CipherSuite;
 
 #[cfg(feature = "std")]
 mod connection {
-    use alloc::sync::Arc;
     use alloc::vec;
     use alloc::vec::Vec;
     use core::fmt::{self, Debug};
@@ -35,6 +34,7 @@ mod connection {
     use crate::msgs::handshake::{ClientExtension, ServerExtension};
     use crate::msgs::message::InboundPlainMessage;
     use crate::server::{ServerConfig, ServerConnectionData};
+    use crate::sync::Arc;
     use crate::vecbuf::ChunkVecBuffer;
 
     /// A QUIC client or server connection.
@@ -383,10 +383,6 @@ mod connection {
                 &Locator::new(self.deframer_buffer.filled()),
                 range.end,
             );
-
-            // `core.process_new_packets` should not process any data in `deframer_buffer`;
-            // it is already ready in `hs_deframer`.
-            self.deframer_buffer.processed = range.end;
 
             self.core
                 .hs_deframer

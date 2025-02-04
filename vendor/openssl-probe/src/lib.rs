@@ -16,12 +16,17 @@ pub struct ProbeResult {
 /// found.
 ///
 /// This will only search known system locations.
+#[doc(hidden)]
+#[deprecated(note = "use `candidate_cert_dirs` instead")]
 pub fn find_certs_dirs() -> Vec<PathBuf> {
-    cert_dirs_iter().map(Path::to_path_buf).collect()
+    candidate_cert_dirs().map(Path::to_path_buf).collect()
 }
 
-// TODO: when we bump to 0.2, make this the `find_certs_dirs` function
-fn cert_dirs_iter() -> impl Iterator<Item = &'static Path> {
+/// Probe the system for the directory in which CA certificates should likely be
+/// found.
+///
+/// This will only search known system locations.
+pub fn candidate_cert_dirs() -> impl Iterator<Item = &'static Path> {
     // see http://gagravarr.org/writing/openssl-certs/others.shtml
     [
         "/var/ssl",
@@ -38,10 +43,23 @@ fn cert_dirs_iter() -> impl Iterator<Item = &'static Path> {
         "/etc/ssl",
         "/etc/certs",
         "/opt/etc/ssl", // Entware
+        #[cfg(target_os = "android")]
         "/data/data/com.termux/files/usr/etc/tls",
+        #[cfg(target_os = "haiku")]
         "/boot/system/data/ssl",
     ]
-    .iter().map(Path::new).filter(|p| p.exists())
+    .iter()
+    .map(Path::new)
+    .filter(|p| p.exists())
+}
+
+/// Deprecated as this isn't sound, use [`init_openssl_env_vars`] instead.
+#[doc(hidden)]
+#[deprecated(note = "this function is not safe, use `init_openssl_env_vars` instead")]
+pub fn init_ssl_cert_env_vars() {
+    unsafe {
+        init_openssl_env_vars();
+    }
 }
 
 /// Probe for SSL certificates on the system, then configure the SSL certificate `SSL_CERT_FILE`
@@ -49,8 +67,26 @@ fn cert_dirs_iter() -> impl Iterator<Item = &'static Path> {
 ///
 /// Preconfigured values in the environment variables will not be overwritten if the paths they
 /// point to exist and are accessible.
-pub fn init_ssl_cert_env_vars() {
-    try_init_ssl_cert_env_vars();
+///
+/// # Safety
+///
+/// This function is not safe because it mutates the process's environment
+/// variables which is generally not safe. See the [documentation in libstd][doc]
+/// for information about why setting environment variables is not safe.
+///
+/// If possible use the [`probe`] function and directly configure OpenSSL
+/// methods instead of relying on environment variables.
+///
+/// [doc]: https://doc.rust-lang.org/stable/std/env/fn.set_var.html#safety
+pub unsafe fn init_openssl_env_vars() {
+    try_init_openssl_env_vars();
+}
+
+/// Deprecated as this isn't sound, use [`try_init_openssl_env_vars`] instead.
+#[doc(hidden)]
+#[deprecated(note = "use try_init_openssl_env_vars instead, this function is not safe")]
+pub fn try_init_ssl_cert_env_vars() -> bool {
+    unsafe { try_init_openssl_env_vars() }
 }
 
 /// Probe for SSL certificates on the system, then configure the SSL certificate `SSL_CERT_FILE`
@@ -62,15 +98,44 @@ pub fn init_ssl_cert_env_vars() {
 /// Returns `true` if any certificate file or directory was found while probing.
 /// Combine this with `has_ssl_cert_env_vars()` to check whether previously configured environment
 /// variables are valid.
-pub fn try_init_ssl_cert_env_vars() -> bool {
-    let ProbeResult { cert_file, cert_dir } = probe();
+///
+/// # Safety
+///
+/// This function is not safe because it mutates the process's environment
+/// variables which is generally not safe. See the [documentation in libstd][doc]
+/// for information about why setting environment variables is not safe.
+///
+/// If possible use the [`probe`] function and directly configure OpenSSL
+/// methods instead of relying on environment variables.
+///
+/// [doc]: https://doc.rust-lang.org/stable/std/env/fn.set_var.html#safety
+pub unsafe fn try_init_openssl_env_vars() -> bool {
+    let ProbeResult {
+        cert_file,
+        cert_dir,
+    } = probe();
     // we won't be overwriting existing env variables because if they're valid probe() will have
     // returned them unchanged
     if let Some(path) = &cert_file {
-        env::set_var(ENV_CERT_FILE, path);
+        unsafe {
+            put(ENV_CERT_FILE, path);
+        }
     }
     if let Some(path) = &cert_dir {
-        env::set_var(ENV_CERT_DIR, path);
+        unsafe {
+            put(ENV_CERT_DIR, path);
+        }
+    }
+
+    unsafe fn put(var: &str, path: &Path) {
+        // Avoid calling `setenv` if the variable already has the same contents. This avoids a
+        // crash when called from out of perl <5.38 (Debian Bookworm is at 5.36), as old versions
+        // of perl tend to manipulate the `environ` pointer directly.
+        if env::var_os(var).as_deref() != Some(path.as_os_str()) {
+            unsafe {
+                env::set_var(var, path);
+            }
+        }
     }
 
     cert_file.is_some() || cert_dir.is_some()
@@ -88,20 +153,20 @@ pub fn has_ssl_cert_env_vars() -> bool {
 }
 
 fn probe_from_env() -> ProbeResult {
-    let var = |name| {
-        env::var_os(name)
-            .map(PathBuf::from)
-            .filter(|p| p.exists())
-    };
+    let var = |name| env::var_os(name).map(PathBuf::from).filter(|p| p.exists());
     ProbeResult {
         cert_file: var(ENV_CERT_FILE),
         cert_dir: var(ENV_CERT_DIR),
     }
 }
 
+/// Probe the current system for the "cert file" and "cert dir" variables that
+/// OpenSSL typically requires.
+///
+/// The probe result is returned as a [`ProbeResult`] structure here.
 pub fn probe() -> ProbeResult {
     let mut result = probe_from_env();
-    for certs_dir in cert_dirs_iter() {
+    for certs_dir in candidate_cert_dirs() {
         // cert.pem looks to be an openssl 1.0.1 thing, while
         // certs/ca-certificates.crt appears to be a 0.9.8 thing
         let cert_filenames = [

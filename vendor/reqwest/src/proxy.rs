@@ -141,14 +141,11 @@ impl<S: IntoUrl> IntoProxyScheme for S {
                 let mut source = e.source();
                 while let Some(err) = source {
                     if let Some(parse_error) = err.downcast_ref::<url::ParseError>() {
-                        match parse_error {
-                            url::ParseError::RelativeUrlWithoutBase => {
-                                presumed_to_have_scheme = false;
-                                break;
-                            }
-                            _ => {}
+                        if *parse_error == url::ParseError::RelativeUrlWithoutBase {
+                            presumed_to_have_scheme = false;
+                            break;
                         }
-                    } else if let Some(_) = err.downcast_ref::<crate::error::BadScheme>() {
+                    } else if err.downcast_ref::<crate::error::BadScheme>().is_some() {
                         presumed_to_have_scheme = false;
                         break;
                     }
@@ -456,12 +453,12 @@ impl NoProxy {
     /// * If neither environment variable is set, `None` is returned
     /// * Entries are expected to be comma-separated (whitespace between entries is ignored)
     /// * IP addresses (both IPv4 and IPv6) are allowed, as are optional subnet masks (by adding /size,
-    /// for example "`192.168.1.0/24`").
+    ///   for example "`192.168.1.0/24`").
     /// * An entry "`*`" matches all hostnames (this is the only wildcard allowed)
     /// * Any other entry is considered a domain name (and may contain a leading dot, for example `google.com`
-    /// and `.google.com` are equivalent) and would match both that domain AND all subdomains.
+    ///   and `.google.com` are equivalent) and would match both that domain AND all subdomains.
     ///
-    /// For example, if `"NO_PROXY=google.com, 192.168.1.0/24"` was set, all of the following would match
+    /// For example, if `"NO_PROXY=google.com, 192.168.1.0/24"` was set, all the following would match
     /// (and therefore would bypass the proxy):
     /// * `http://google.com/`
     /// * `http://www.google.com/`
@@ -875,7 +872,7 @@ impl Dst for Uri {
 ///
 /// All platforms will check for proxy settings via environment variables.
 /// If those aren't set, platform-wide proxy settings will be looked up on
-/// Windows and MacOS platforms instead. Errors encountered while discovering
+/// Windows and macOS platforms instead. Errors encountered while discovering
 /// these settings are ignored.
 ///
 /// Returns:
@@ -959,7 +956,7 @@ fn is_cgi() -> bool {
 fn get_from_platform_impl() -> Result<Option<String>, Box<dyn Error>> {
     let internet_setting = windows_registry::CURRENT_USER
         .open("Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings")?;
-    // ensure the proxy is enable, if the value doesn't exist, an error will returned.
+    // ensure the proxy is enabled, if the value doesn't exist, an error will be returned.
     let proxy_enable = internet_setting.get_u32("ProxyEnable")?;
     let proxy_server = internet_setting.get_string("ProxyServer")?;
 

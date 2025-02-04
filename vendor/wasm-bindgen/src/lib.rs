@@ -4,19 +4,67 @@
 //! attribute and tool. Crates pull in the `#[wasm_bindgen]` attribute through
 //! this crate and this crate also provides JS bindings through the `JsValue`
 //! interface.
+//!
+//! ## Features
+//!
+//! ### `enable-interning`
+//!
+//! Enables the internal cache for [`wasm_bindgen::intern`].
+//!
+//! This feature currently enables the `std` feature, meaning that it is not
+//! compatible with `no_std` environments.
+//!
+//! ### `msrv` (default)
+//!
+//! Enables Rust language features that require a higher MSRV. Enabling this
+//! feature on older compilers will NOT result in a compilation error, the newer
+//! language features will simply not be used.
+//!
+//! When compiling with Rust v1.78 or later, this feature enables better error messages for invalid methods on structs and enums.
+//!
+//! ### `std` (default)
+//!
+//! Enabling this feature will make the crate depend on the Rust standard library.
+//!
+//! Disable this feature to use this crate in `no_std` environments.
+//!
+//! ### `strict-macro`
+//!
+//! All warnings the `#[wasm_bindgen]` macro emits are turned into hard errors.
+//! This mainly affects unused attribute options.
+//!
+//! ### Deprecated features
+//!
+//! #### `serde-serialize`
+//!
+//! **Deprecated:** Use the [`serde-wasm-bindgen`](https://docs.rs/serde-wasm-bindgen/latest/serde_wasm_bindgen/) crate instead.
+//!
+//! Enables the `JsValue::from_serde` and `JsValue::into_serde` methods for
+//! serializing and deserializing Rust types to and from JavaScript.
+//!
+//! #### `spans`
+//!
+//! **Deprecated:** This feature became a no-op in wasm-bindgen v0.2.20 (Sep 7, 2018).
 
 #![no_std]
 #![cfg_attr(wasm_bindgen_unstable_test_coverage, feature(coverage_attribute))]
-#![allow(coherence_leak_check)]
+#![cfg_attr(target_feature = "atomics", feature(thread_local))]
+#![cfg_attr(
+    any(target_feature = "atomics", wasm_bindgen_unstable_test_coverage),
+    feature(allow_internal_unstable),
+    allow(internal_features)
+)]
 #![doc(html_root_url = "https://docs.rs/wasm-bindgen/0.2")]
 
 extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
 
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
-use core::marker;
+use core::marker::PhantomData;
 use core::mem;
 use core::ops::{
     Add, BitAnd, BitOr, BitXor, Deref, DerefMut, Div, Mul, Neg, Not, Rem, Shl, Shr, Sub,
@@ -25,22 +73,16 @@ use core::ptr::NonNull;
 
 use crate::convert::{FromWasmAbi, TryFromJsValue, WasmRet, WasmSlice};
 
-macro_rules! if_std {
-    ($($i:item)*) => ($(
-        #[cfg(feature = "std")] $i
-    )*)
-}
-
 macro_rules! externs {
     ($(#[$attr:meta])* extern "C" { $(fn $name:ident($($args:tt)*) -> $ret:ty;)* }) => (
-        #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+        #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
         $(#[$attr])*
         extern "C" {
             $(fn $name($($args)*) -> $ret;)*
         }
 
         $(
-            #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+            #[cfg(not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))))]
             #[allow(unused_variables)]
             unsafe extern fn $name($($args)*) -> $ret {
                 panic!("function not implemented on non-wasm32 targets")
@@ -71,18 +113,18 @@ pub use wasm_bindgen_macro::link_to;
 pub mod closure;
 pub mod convert;
 pub mod describe;
+mod externref;
 mod link;
 
 mod cast;
 pub use crate::cast::{JsCast, JsObject};
 
-if_std! {
-    extern crate std;
-    use std::prelude::v1::*;
-    mod externref;
-    mod cache;
-    pub use cache::intern::{intern, unintern};
-}
+mod cache;
+pub use cache::intern::{intern, unintern};
+
+#[doc(hidden)]
+#[path = "rt/mod.rs"]
+pub mod __rt;
 
 /// Representation of an object owned by JS.
 ///
@@ -92,7 +134,7 @@ if_std! {
 /// but for now it may be slightly slow.
 pub struct JsValue {
     idx: u32,
-    _marker: marker::PhantomData<*mut u8>, // not at all threadsafe
+    _marker: PhantomData<*mut u8>, // not at all threadsafe
 }
 
 const JSIDX_OFFSET: u32 = 128; // keep in sync with js/mod.rs
@@ -119,7 +161,7 @@ impl JsValue {
     const fn _new(idx: u32) -> JsValue {
         JsValue {
             idx,
-            _marker: marker::PhantomData,
+            _marker: PhantomData,
         }
     }
 
@@ -391,7 +433,6 @@ impl JsValue {
     }
 
     /// Get a string representation of the JavaScript object for debugging.
-    #[cfg(feature = "std")]
     fn as_debug_string(&self) -> String {
         unsafe {
             let mut ret = [0; 2];
@@ -1128,17 +1169,9 @@ impl Clone for JsValue {
     }
 }
 
-#[cfg(feature = "std")]
 impl core::fmt::Debug for JsValue {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "JsValue({})", self.as_debug_string())
-    }
-}
-
-#[cfg(not(feature = "std"))]
-impl core::fmt::Debug for JsValue {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        f.write_str("JsValue")
     }
 }
 
@@ -1186,7 +1219,7 @@ impl Default for JsValue {
 /// This type implements `Deref` to the inner type so it's typically used as if
 /// it were `&T`.
 #[cfg(feature = "std")]
-#[deprecated = "use with `#[wasm_bindgen(thread_local)]` instead"]
+#[deprecated = "use with `#[wasm_bindgen(thread_local_v2)]` instead"]
 pub struct JsStatic<T: 'static> {
     #[doc(hidden)]
     pub __inner: &'static std::thread::LocalKey<T>,
@@ -1199,6 +1232,45 @@ impl<T: FromWasmAbi + 'static> Deref for JsStatic<T> {
     type Target = T;
     fn deref(&self) -> &T {
         unsafe { self.__inner.with(|ptr| &*(ptr as *const T)) }
+    }
+}
+
+/// Wrapper type for imported statics.
+///
+/// This type is used whenever a `static` is imported from a JS module, for
+/// example this import:
+///
+/// ```ignore
+/// #[wasm_bindgen]
+/// extern "C" {
+///     #[wasm_bindgen(thread_local_v2)]
+///     static console: JsValue;
+/// }
+/// ```
+///
+/// will generate in Rust a value that looks like:
+///
+/// ```ignore
+/// static console: JsThreadLocal<JsValue> = ...;
+/// ```
+pub struct JsThreadLocal<T: 'static> {
+    #[doc(hidden)]
+    #[cfg(not(target_feature = "atomics"))]
+    pub __inner: &'static __rt::LazyCell<T>,
+    #[doc(hidden)]
+    #[cfg(target_feature = "atomics")]
+    pub __inner: fn() -> *const T,
+}
+
+impl<T> JsThreadLocal<T> {
+    pub fn with<F, R>(&'static self, f: F) -> R
+    where
+        F: FnOnce(&T) -> R,
+    {
+        #[cfg(not(target_feature = "atomics"))]
+        return f(self.__inner);
+        #[cfg(target_feature = "atomics")]
+        f(unsafe { &*(self.__inner)() })
     }
 }
 
@@ -1336,14 +1408,17 @@ pub trait UnwrapThrowExt<T>: Sized {
     #[cfg_attr(
         any(
             debug_assertions,
-            not(all(target_arch = "wasm32", target_os = "unknown"))
+            not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))
         ),
         track_caller
     )]
     fn unwrap_throw(self) -> T {
         if cfg!(all(
             debug_assertions,
-            all(target_arch = "wasm32", target_os = "unknown")
+            all(
+                target_arch = "wasm32",
+                any(target_os = "unknown", target_os = "none")
+            )
         )) {
             let loc = core::panic::Location::caller();
             let msg = alloc::format!(
@@ -1365,7 +1440,7 @@ pub trait UnwrapThrowExt<T>: Sized {
     #[cfg_attr(
         any(
             debug_assertions,
-            not(all(target_arch = "wasm32", target_os = "unknown"))
+            not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))
         ),
         track_caller
     )]
@@ -1376,7 +1451,10 @@ impl<T> UnwrapThrowExt<T> for Option<T> {
     fn unwrap_throw(self) -> T {
         const MSG: &str = "called `Option::unwrap_throw()` on a `None` value";
 
-        if cfg!(all(target_arch = "wasm32", target_os = "unknown")) {
+        if cfg!(all(
+            target_arch = "wasm32",
+            any(target_os = "unknown", target_os = "none")
+        )) {
             if let Some(val) = self {
                 val
             } else if cfg!(debug_assertions) {
@@ -1394,7 +1472,10 @@ impl<T> UnwrapThrowExt<T> for Option<T> {
     }
 
     fn expect_throw(self, message: &str) -> T {
-        if cfg!(all(target_arch = "wasm32", target_os = "unknown")) {
+        if cfg!(all(
+            target_arch = "wasm32",
+            any(target_os = "unknown", target_os = "none")
+        )) {
             if let Some(val) = self {
                 val
             } else if cfg!(debug_assertions) {
@@ -1424,7 +1505,10 @@ where
     fn unwrap_throw(self) -> T {
         const MSG: &str = "called `Result::unwrap_throw()` on an `Err` value";
 
-        if cfg!(all(target_arch = "wasm32", target_os = "unknown")) {
+        if cfg!(all(
+            target_arch = "wasm32",
+            any(target_os = "unknown", target_os = "none")
+        )) {
             match self {
                 Ok(val) => val,
                 Err(err) => {
@@ -1451,7 +1535,10 @@ where
     }
 
     fn expect_throw(self, message: &str) -> T {
-        if cfg!(all(target_arch = "wasm32", target_os = "unknown")) {
+        if cfg!(all(
+            target_arch = "wasm32",
+            any(target_os = "unknown", target_os = "none")
+        )) {
             match self {
                 Ok(val) => val,
                 Err(err) => {
@@ -1499,580 +1586,6 @@ pub fn memory() -> JsValue {
 /// indirect function table used by Rust
 pub fn function_table() -> JsValue {
     unsafe { JsValue::_new(__wbindgen_function_table()) }
-}
-
-#[doc(hidden)]
-pub mod __rt {
-    use crate::JsValue;
-    use core::borrow::{Borrow, BorrowMut};
-    use core::cell::{Cell, UnsafeCell};
-    use core::convert::Infallible;
-    use core::mem;
-    use core::ops::{Deref, DerefMut};
-
-    pub extern crate alloc;
-    pub extern crate core;
-    #[cfg(feature = "std")]
-    pub extern crate std;
-
-    use alloc::alloc::{alloc, dealloc, realloc, Layout};
-    use alloc::boxed::Box;
-    use alloc::rc::Rc;
-    pub use once_cell::sync::Lazy;
-
-    #[macro_export]
-    #[doc(hidden)]
-    #[cfg(feature = "std")]
-    macro_rules! __wbindgen_if_not_std {
-        ($($i:item)*) => {};
-    }
-
-    #[macro_export]
-    #[doc(hidden)]
-    #[cfg(not(feature = "std"))]
-    macro_rules! __wbindgen_if_not_std {
-        ($($i:item)*) => ($($i)*)
-    }
-
-    #[inline]
-    pub fn assert_not_null<T>(s: *mut T) {
-        if s.is_null() {
-            throw_null();
-        }
-    }
-
-    #[cold]
-    #[inline(never)]
-    fn throw_null() -> ! {
-        super::throw_str("null pointer passed to rust");
-    }
-
-    /// A vendored version of `RefCell` from the standard library.
-    ///
-    /// Now why, you may ask, would we do that? Surely `RefCell` in libstd is
-    /// quite good. And you're right, it is indeed quite good! Functionally
-    /// nothing more is needed from `RefCell` in the standard library but for
-    /// now this crate is also sort of optimizing for compiled code size.
-    ///
-    /// One major factor to larger binaries in Rust is when a panic happens.
-    /// Panicking in the standard library involves a fair bit of machinery
-    /// (formatting, panic hooks, synchronization, etc). It's all worthwhile if
-    /// you need it but for something like `WasmRefCell` here we don't actually
-    /// need all that!
-    ///
-    /// This is just a wrapper around all Rust objects passed to JS intended to
-    /// guard accidental reentrancy, so this vendored version is intended solely
-    /// to not panic in libstd. Instead when it "panics" it calls our `throw`
-    /// function in this crate which raises an error in JS.
-    pub struct WasmRefCell<T: ?Sized> {
-        borrow: Cell<usize>,
-        value: UnsafeCell<T>,
-    }
-
-    impl<T: ?Sized> WasmRefCell<T> {
-        pub fn new(value: T) -> WasmRefCell<T>
-        where
-            T: Sized,
-        {
-            WasmRefCell {
-                value: UnsafeCell::new(value),
-                borrow: Cell::new(0),
-            }
-        }
-
-        pub fn get_mut(&mut self) -> &mut T {
-            unsafe { &mut *self.value.get() }
-        }
-
-        pub fn borrow(&self) -> Ref<T> {
-            unsafe {
-                if self.borrow.get() == usize::MAX {
-                    borrow_fail();
-                }
-                self.borrow.set(self.borrow.get() + 1);
-                Ref {
-                    value: &*self.value.get(),
-                    borrow: &self.borrow,
-                }
-            }
-        }
-
-        pub fn borrow_mut(&self) -> RefMut<T> {
-            unsafe {
-                if self.borrow.get() != 0 {
-                    borrow_fail();
-                }
-                self.borrow.set(usize::MAX);
-                RefMut {
-                    value: &mut *self.value.get(),
-                    borrow: &self.borrow,
-                }
-            }
-        }
-
-        pub fn into_inner(self) -> T
-        where
-            T: Sized,
-        {
-            self.value.into_inner()
-        }
-    }
-
-    pub struct Ref<'b, T: ?Sized + 'b> {
-        value: &'b T,
-        borrow: &'b Cell<usize>,
-    }
-
-    impl<'b, T: ?Sized> Deref for Ref<'b, T> {
-        type Target = T;
-
-        #[inline]
-        fn deref(&self) -> &T {
-            self.value
-        }
-    }
-
-    impl<'b, T: ?Sized> Borrow<T> for Ref<'b, T> {
-        #[inline]
-        fn borrow(&self) -> &T {
-            self.value
-        }
-    }
-
-    impl<'b, T: ?Sized> Drop for Ref<'b, T> {
-        fn drop(&mut self) {
-            self.borrow.set(self.borrow.get() - 1);
-        }
-    }
-
-    pub struct RefMut<'b, T: ?Sized + 'b> {
-        value: &'b mut T,
-        borrow: &'b Cell<usize>,
-    }
-
-    impl<'b, T: ?Sized> Deref for RefMut<'b, T> {
-        type Target = T;
-
-        #[inline]
-        fn deref(&self) -> &T {
-            self.value
-        }
-    }
-
-    impl<'b, T: ?Sized> DerefMut for RefMut<'b, T> {
-        #[inline]
-        fn deref_mut(&mut self) -> &mut T {
-            self.value
-        }
-    }
-
-    impl<'b, T: ?Sized> Borrow<T> for RefMut<'b, T> {
-        #[inline]
-        fn borrow(&self) -> &T {
-            self.value
-        }
-    }
-
-    impl<'b, T: ?Sized> BorrowMut<T> for RefMut<'b, T> {
-        #[inline]
-        fn borrow_mut(&mut self) -> &mut T {
-            self.value
-        }
-    }
-
-    impl<'b, T: ?Sized> Drop for RefMut<'b, T> {
-        fn drop(&mut self) {
-            self.borrow.set(0);
-        }
-    }
-
-    fn borrow_fail() -> ! {
-        super::throw_str(
-            "recursive use of an object detected which would lead to \
-             unsafe aliasing in rust",
-        );
-    }
-
-    /// A type that encapsulates an `Rc<WasmRefCell<T>>` as well as a `Ref`
-    /// to the contents of that `WasmRefCell`.
-    ///
-    /// The `'static` requirement is an unfortunate consequence of how this
-    /// is implemented.
-    pub struct RcRef<T: ?Sized + 'static> {
-        // The 'static is a lie.
-        //
-        // We could get away without storing this, since we're in the same module as
-        // `WasmRefCell` and can directly manipulate its `borrow`, but I'm considering
-        // turning it into a wrapper around `std`'s `RefCell` to reduce `unsafe` in
-        // which case that would stop working. This also requires less `unsafe` as is.
-        //
-        // It's important that this goes before `Rc` so that it gets dropped first.
-        ref_: Ref<'static, T>,
-        _rc: Rc<WasmRefCell<T>>,
-    }
-
-    impl<T: ?Sized> RcRef<T> {
-        pub fn new(rc: Rc<WasmRefCell<T>>) -> Self {
-            let ref_ = unsafe { (*Rc::as_ptr(&rc)).borrow() };
-            Self { _rc: rc, ref_ }
-        }
-    }
-
-    impl<T: ?Sized> Deref for RcRef<T> {
-        type Target = T;
-
-        #[inline]
-        fn deref(&self) -> &T {
-            &self.ref_
-        }
-    }
-
-    impl<T: ?Sized> Borrow<T> for RcRef<T> {
-        #[inline]
-        fn borrow(&self) -> &T {
-            &self.ref_
-        }
-    }
-
-    /// A type that encapsulates an `Rc<WasmRefCell<T>>` as well as a
-    /// `RefMut` to the contents of that `WasmRefCell`.
-    ///
-    /// The `'static` requirement is an unfortunate consequence of how this
-    /// is implemented.
-    pub struct RcRefMut<T: ?Sized + 'static> {
-        ref_: RefMut<'static, T>,
-        _rc: Rc<WasmRefCell<T>>,
-    }
-
-    impl<T: ?Sized> RcRefMut<T> {
-        pub fn new(rc: Rc<WasmRefCell<T>>) -> Self {
-            let ref_ = unsafe { (*Rc::as_ptr(&rc)).borrow_mut() };
-            Self { _rc: rc, ref_ }
-        }
-    }
-
-    impl<T: ?Sized> Deref for RcRefMut<T> {
-        type Target = T;
-
-        #[inline]
-        fn deref(&self) -> &T {
-            &self.ref_
-        }
-    }
-
-    impl<T: ?Sized> DerefMut for RcRefMut<T> {
-        #[inline]
-        fn deref_mut(&mut self) -> &mut T {
-            &mut self.ref_
-        }
-    }
-
-    impl<T: ?Sized> Borrow<T> for RcRefMut<T> {
-        #[inline]
-        fn borrow(&self) -> &T {
-            &self.ref_
-        }
-    }
-
-    impl<T: ?Sized> BorrowMut<T> for RcRefMut<T> {
-        #[inline]
-        fn borrow_mut(&mut self) -> &mut T {
-            &mut self.ref_
-        }
-    }
-
-    #[no_mangle]
-    pub extern "C" fn __wbindgen_malloc(size: usize, align: usize) -> *mut u8 {
-        if let Ok(layout) = Layout::from_size_align(size, align) {
-            unsafe {
-                if layout.size() > 0 {
-                    let ptr = alloc(layout);
-                    if !ptr.is_null() {
-                        return ptr;
-                    }
-                } else {
-                    return align as *mut u8;
-                }
-            }
-        }
-
-        malloc_failure();
-    }
-
-    #[no_mangle]
-    pub unsafe extern "C" fn __wbindgen_realloc(
-        ptr: *mut u8,
-        old_size: usize,
-        new_size: usize,
-        align: usize,
-    ) -> *mut u8 {
-        debug_assert!(old_size > 0);
-        debug_assert!(new_size > 0);
-        if let Ok(layout) = Layout::from_size_align(old_size, align) {
-            let ptr = realloc(ptr, layout, new_size);
-            if !ptr.is_null() {
-                return ptr;
-            }
-        }
-        malloc_failure();
-    }
-
-    #[cold]
-    fn malloc_failure() -> ! {
-        cfg_if::cfg_if! {
-            if #[cfg(debug_assertions)] {
-                super::throw_str("invalid malloc request")
-            } else if #[cfg(feature = "std")] {
-                std::process::abort();
-            } else if #[cfg(all(
-                target_arch = "wasm32",
-                target_os = "unknown"
-            ))] {
-                core::arch::wasm32::unreachable();
-            } else {
-                unreachable!()
-            }
-        }
-    }
-
-    #[no_mangle]
-    pub unsafe extern "C" fn __wbindgen_free(ptr: *mut u8, size: usize, align: usize) {
-        // This happens for zero-length slices, and in that case `ptr` is
-        // likely bogus so don't actually send this to the system allocator
-        if size == 0 {
-            return;
-        }
-        let layout = Layout::from_size_align_unchecked(size, align);
-        dealloc(ptr, layout);
-    }
-
-    /// This is a curious function necessary to get wasm-bindgen working today,
-    /// and it's a bit of an unfortunate hack.
-    ///
-    /// The general problem is that somehow we need the above two symbols to
-    /// exist in the final output binary (__wbindgen_malloc and
-    /// __wbindgen_free). These symbols may be called by JS for various
-    /// bindings, so we for sure need to make sure they're exported.
-    ///
-    /// The problem arises, though, when what if no Rust code uses the symbols?
-    /// For all intents and purposes it looks to LLVM and the linker like the
-    /// above two symbols are dead code, so they're completely discarded!
-    ///
-    /// Specifically what happens is this:
-    ///
-    /// * The above two symbols are generated into some object file inside of
-    ///   libwasm_bindgen.rlib
-    /// * The linker, LLD, will not load this object file unless *some* symbol
-    ///   is loaded from the object. In this case, if the Rust code never calls
-    ///   __wbindgen_malloc or __wbindgen_free then the symbols never get linked
-    ///   in.
-    /// * Later when `wasm-bindgen` attempts to use the symbols they don't
-    ///   exist, causing an error.
-    ///
-    /// This function is a weird hack for this problem. We inject a call to this
-    /// function in all generated code. Usage of this function should then
-    /// ensure that the above two intrinsics are translated.
-    ///
-    /// Due to how rustc creates object files this function (and anything inside
-    /// it) will be placed into the same object file as the two intrinsics
-    /// above. That means if this function is called and referenced we'll pull
-    /// in the object file and link the intrinsics.
-    ///
-    /// Ideas for how to improve this are most welcome!
-    #[cfg_attr(wasm_bindgen_unstable_test_coverage, coverage(off))]
-    pub fn link_mem_intrinsics() {
-        crate::link::link_intrinsics();
-    }
-
-    if_std! {
-        std::thread_local! {
-            static GLOBAL_EXNDATA: Cell<[u32; 2]> = Cell::new([0; 2]);
-        }
-
-        #[no_mangle]
-        pub unsafe extern "C" fn __wbindgen_exn_store(idx: u32) {
-            GLOBAL_EXNDATA.with(|data| {
-                debug_assert_eq!(data.get()[0], 0);
-                data.set([1, idx]);
-            });
-        }
-
-        pub fn take_last_exception() -> Result<(), super::JsValue> {
-            GLOBAL_EXNDATA.with(|data| {
-                let ret = if data.get()[0] == 1 {
-                    Err(super::JsValue::_new(data.get()[1]))
-                } else {
-                    Ok(())
-                };
-                data.set([0, 0]);
-                ret
-            })
-        }
-    }
-
-    /// An internal helper trait for usage in `#[wasm_bindgen]` on `async`
-    /// functions to convert the return value of the function to
-    /// `Result<JsValue, JsValue>` which is what we'll return to JS (where an
-    /// error is a failed future).
-    pub trait IntoJsResult {
-        fn into_js_result(self) -> Result<JsValue, JsValue>;
-    }
-
-    impl IntoJsResult for () {
-        fn into_js_result(self) -> Result<JsValue, JsValue> {
-            Ok(JsValue::undefined())
-        }
-    }
-
-    impl<T: Into<JsValue>> IntoJsResult for T {
-        fn into_js_result(self) -> Result<JsValue, JsValue> {
-            Ok(self.into())
-        }
-    }
-
-    impl<T: Into<JsValue>, E: Into<JsValue>> IntoJsResult for Result<T, E> {
-        fn into_js_result(self) -> Result<JsValue, JsValue> {
-            match self {
-                Ok(e) => Ok(e.into()),
-                Err(e) => Err(e.into()),
-            }
-        }
-    }
-
-    impl<E: Into<JsValue>> IntoJsResult for Result<(), E> {
-        fn into_js_result(self) -> Result<JsValue, JsValue> {
-            match self {
-                Ok(()) => Ok(JsValue::undefined()),
-                Err(e) => Err(e.into()),
-            }
-        }
-    }
-
-    /// An internal helper trait for usage in `#[wasm_bindgen(start)]`
-    /// functions to throw the error (if it is `Err`).
-    pub trait Start {
-        fn start(self);
-    }
-
-    impl Start for () {
-        #[inline]
-        fn start(self) {}
-    }
-
-    impl<E: Into<JsValue>> Start for Result<(), E> {
-        #[inline]
-        fn start(self) {
-            if let Err(e) = self {
-                crate::throw_val(e.into());
-            }
-        }
-    }
-
-    /// An internal helper struct for usage in `#[wasm_bindgen(main)]`
-    /// functions to throw the error (if it is `Err`).
-    pub struct MainWrapper<T>(pub Option<T>);
-
-    pub trait Main {
-        fn __wasm_bindgen_main(&mut self);
-    }
-
-    impl Main for &mut &mut MainWrapper<()> {
-        #[inline]
-        fn __wasm_bindgen_main(&mut self) {}
-    }
-
-    impl Main for &mut &mut MainWrapper<Infallible> {
-        #[inline]
-        fn __wasm_bindgen_main(&mut self) {}
-    }
-
-    impl<E: Into<JsValue>> Main for &mut &mut MainWrapper<Result<(), E>> {
-        #[inline]
-        fn __wasm_bindgen_main(&mut self) {
-            if let Err(e) = self.0.take().unwrap() {
-                crate::throw_val(e.into());
-            }
-        }
-    }
-
-    impl<E: core::fmt::Debug> Main for &mut MainWrapper<Result<(), E>> {
-        #[inline]
-        fn __wasm_bindgen_main(&mut self) {
-            if let Err(e) = self.0.take().unwrap() {
-                crate::throw_str(&alloc::format!("{:?}", e));
-            }
-        }
-    }
-
-    pub const fn flat_len<T, const SIZE: usize>(slices: [&[T]; SIZE]) -> usize {
-        let mut len = 0;
-        let mut i = 0;
-        while i < slices.len() {
-            len += slices[i].len();
-            i += 1;
-        }
-        len
-    }
-
-    pub const fn flat_byte_slices<const RESULT_LEN: usize, const SIZE: usize>(
-        slices: [&[u8]; SIZE],
-    ) -> [u8; RESULT_LEN] {
-        let mut result = [0; RESULT_LEN];
-
-        let mut slice_index = 0;
-        let mut result_offset = 0;
-
-        while slice_index < slices.len() {
-            let mut i = 0;
-            let slice = slices[slice_index];
-            while i < slice.len() {
-                result[result_offset] = slice[i];
-                i += 1;
-                result_offset += 1;
-            }
-            slice_index += 1;
-        }
-
-        result
-    }
-
-    // NOTE: This method is used to encode u32 into a variable-length-integer during the compile-time .
-    // Generally speaking, the length of the encoded variable-length-integer depends on the size of the integer
-    // but the maximum capacity can be used here to simplify the amount of code during the compile-time .
-    pub const fn encode_u32_to_fixed_len_bytes(value: u32) -> [u8; 5] {
-        let mut result: [u8; 5] = [0; 5];
-        let mut i = 0;
-        while i < 4 {
-            result[i] = ((value >> (7 * i)) | 0x80) as u8;
-            i += 1;
-        }
-        result[4] = (value >> (7 * 4)) as u8;
-        result
-    }
-
-    /// Trait for element types to implement `Into<JsValue>` for vectors of
-    /// themselves, which isn't possible directly thanks to the orphan rule.
-    pub trait VectorIntoJsValue: Sized {
-        fn vector_into_jsvalue(vector: Box<[Self]>) -> JsValue;
-    }
-
-    impl<T: VectorIntoJsValue> From<Box<[T]>> for JsValue {
-        fn from(vector: Box<[T]>) -> Self {
-            T::vector_into_jsvalue(vector)
-        }
-    }
-
-    pub fn js_value_vector_into_jsvalue<T: Into<JsValue>>(vector: Box<[T]>) -> JsValue {
-        let result = unsafe { JsValue::_new(super::__wbindgen_array_new()) };
-        for value in vector.into_vec() {
-            let js: JsValue = value.into();
-            unsafe { super::__wbindgen_array_push(result.idx, js.idx) }
-            // `__wbindgen_array_push` takes ownership over `js` and has already dropped it,
-            // so don't drop it again.
-            mem::forget(js);
-        }
-        result
-    }
 }
 
 /// A wrapper type around slices and vectors for binding the `Uint8ClampedArray`
@@ -2175,14 +1688,15 @@ impl JsError {
     }
 }
 
-if_std! {
-    impl<E> From<E> for JsError
-    where
-        E: std::error::Error,
-    {
-        fn from(error: E) -> Self {
-            JsError::new(&error.to_string())
-        }
+#[cfg(feature = "std")]
+impl<E> From<E> for JsError
+where
+    E: std::error::Error,
+{
+    fn from(error: E) -> Self {
+        use std::string::ToString;
+
+        JsError::new(&error.to_string())
     }
 }
 

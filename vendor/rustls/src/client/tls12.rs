@@ -1,6 +1,5 @@
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
-use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -31,6 +30,7 @@ use crate::msgs::message::{Message, MessagePayload};
 use crate::msgs::persist;
 use crate::sign::Signer;
 use crate::suites::{PartiallyExtractedSecrets, SupportedCipherSuite};
+use crate::sync::Arc;
 use crate::tls12::{self, ConnectionSecrets, Tls12CipherSuite};
 use crate::verify::{self, DigitallySignedStruct};
 
@@ -934,14 +934,11 @@ impl State<ClientConnectionData> for ExpectServerDone<'_> {
                     .copied()
             }
         };
-        let skxg = match maybe_skxg {
-            Some(skxg) => skxg,
-            None => {
-                return Err(cx.common.send_fatal_alert(
-                    AlertDescription::IllegalParameter,
-                    PeerMisbehaved::SelectedUnofferedKxGroup,
-                ));
-            }
+        let Some(skxg) = maybe_skxg else {
+            return Err(cx.common.send_fatal_alert(
+                AlertDescription::IllegalParameter,
+                PeerMisbehaved::SelectedUnofferedKxGroup,
+            ));
         };
         cx.common.kx_state = KxState::Start(skxg);
         let kx = skxg.start()?;
@@ -1188,12 +1185,9 @@ impl ExpectFinished {
             return;
         }
 
-        let now = match self.config.current_time() {
-            Ok(now) => now,
-            Err(_) => {
-                debug!("Could not get current time");
-                return;
-            }
+        let Ok(now) = self.config.current_time() else {
+            debug!("Could not get current time");
+            return;
         };
 
         let session_value = persist::Tls12ClientSessionValue::new(

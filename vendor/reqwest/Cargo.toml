@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.64.0"
 name = "reqwest"
-version = "0.12.9"
+version = "0.12.12"
 authors = ["Sean McArthur <sean@seanmonstar.com>"]
 build = false
 autolib = false
@@ -56,159 +56,6 @@ features = [
     "json",
     "multipart",
 ]
-
-[lib]
-name = "reqwest"
-path = "src/lib.rs"
-
-[[example]]
-name = "blocking"
-path = "examples/blocking.rs"
-required-features = ["blocking"]
-
-[[example]]
-name = "form"
-path = "examples/form.rs"
-
-[[example]]
-name = "h3_simple"
-path = "examples/h3_simple.rs"
-
-[[example]]
-name = "json_dynamic"
-path = "examples/json_dynamic.rs"
-required-features = ["json"]
-
-[[example]]
-name = "json_typed"
-path = "examples/json_typed.rs"
-required-features = ["json"]
-
-[[example]]
-name = "simple"
-path = "examples/simple.rs"
-
-[[example]]
-name = "tor_socks"
-path = "examples/tor_socks.rs"
-required-features = ["socks"]
-
-[[test]]
-name = "badssl"
-path = "tests/badssl.rs"
-
-[[test]]
-name = "blocking"
-path = "tests/blocking.rs"
-required-features = ["blocking"]
-
-[[test]]
-name = "brotli"
-path = "tests/brotli.rs"
-required-features = [
-    "brotli",
-    "stream",
-]
-
-[[test]]
-name = "client"
-path = "tests/client.rs"
-
-[[test]]
-name = "cookie"
-path = "tests/cookie.rs"
-required-features = ["cookies"]
-
-[[test]]
-name = "deflate"
-path = "tests/deflate.rs"
-required-features = [
-    "deflate",
-    "stream",
-]
-
-[[test]]
-name = "gzip"
-path = "tests/gzip.rs"
-required-features = [
-    "gzip",
-    "stream",
-]
-
-[[test]]
-name = "multipart"
-path = "tests/multipart.rs"
-required-features = ["multipart"]
-
-[[test]]
-name = "proxy"
-path = "tests/proxy.rs"
-
-[[test]]
-name = "redirect"
-path = "tests/redirect.rs"
-
-[[test]]
-name = "timeouts"
-path = "tests/timeouts.rs"
-
-[[test]]
-name = "upgrade"
-path = "tests/upgrade.rs"
-
-[[test]]
-name = "wasm_simple"
-path = "tests/wasm_simple.rs"
-
-[[test]]
-name = "zstd"
-path = "tests/zstd.rs"
-required-features = [
-    "zstd",
-    "stream",
-]
-
-[dependencies.base64]
-version = "0.22"
-
-[dependencies.bytes]
-version = "1.0"
-
-[dependencies.futures-core]
-version = "0.3.28"
-default-features = false
-
-[dependencies.futures-util]
-version = "0.3.28"
-default-features = false
-
-[dependencies.http]
-version = "1"
-
-[dependencies.mime_guess]
-version = "2.0"
-optional = true
-default-features = false
-
-[dependencies.serde]
-version = "1.0"
-
-[dependencies.serde_json]
-version = "1.0"
-optional = true
-
-[dependencies.serde_urlencoded]
-version = "0.7.1"
-
-[dependencies.sync_wrapper]
-version = "1.0"
-features = ["futures"]
-
-[dependencies.tower-service]
-version = "0.3"
-
-[dependencies.url]
-version = "2.4"
 
 [features]
 __internal_proxy_sys_no_cache = []
@@ -335,6 +182,178 @@ zstd = [
     "dep:tokio-util",
 ]
 
+[lib]
+name = "reqwest"
+path = "src/lib.rs"
+
+[[example]]
+name = "blocking"
+path = "examples/blocking.rs"
+required-features = ["blocking"]
+
+[[example]]
+name = "connect_via_lower_priority_tokio_runtime"
+path = "examples/connect_via_lower_priority_tokio_runtime.rs"
+
+[[example]]
+name = "form"
+path = "examples/form.rs"
+
+[[example]]
+name = "h3_simple"
+path = "examples/h3_simple.rs"
+
+[[example]]
+name = "json_dynamic"
+path = "examples/json_dynamic.rs"
+required-features = ["json"]
+
+[[example]]
+name = "json_typed"
+path = "examples/json_typed.rs"
+required-features = ["json"]
+
+[[example]]
+name = "simple"
+path = "examples/simple.rs"
+
+[[example]]
+name = "tor_socks"
+path = "examples/tor_socks.rs"
+required-features = ["socks"]
+
+[[test]]
+name = "badssl"
+path = "tests/badssl.rs"
+
+[[test]]
+name = "blocking"
+path = "tests/blocking.rs"
+required-features = ["blocking"]
+
+[[test]]
+name = "brotli"
+path = "tests/brotli.rs"
+required-features = [
+    "brotli",
+    "stream",
+]
+
+[[test]]
+name = "client"
+path = "tests/client.rs"
+
+[[test]]
+name = "connector_layers"
+path = "tests/connector_layers.rs"
+
+[[test]]
+name = "cookie"
+path = "tests/cookie.rs"
+required-features = ["cookies"]
+
+[[test]]
+name = "deflate"
+path = "tests/deflate.rs"
+required-features = [
+    "deflate",
+    "stream",
+]
+
+[[test]]
+name = "gzip"
+path = "tests/gzip.rs"
+required-features = [
+    "gzip",
+    "stream",
+]
+
+[[test]]
+name = "multipart"
+path = "tests/multipart.rs"
+required-features = ["multipart"]
+
+[[test]]
+name = "proxy"
+path = "tests/proxy.rs"
+
+[[test]]
+name = "redirect"
+path = "tests/redirect.rs"
+
+[[test]]
+name = "timeouts"
+path = "tests/timeouts.rs"
+
+[[test]]
+name = "upgrade"
+path = "tests/upgrade.rs"
+
+[[test]]
+name = "wasm_simple"
+path = "tests/wasm_simple.rs"
+
+[[test]]
+name = "zstd"
+path = "tests/zstd.rs"
+required-features = [
+    "zstd",
+    "stream",
+]
+
+[dependencies.base64]
+version = "0.22"
+
+[dependencies.bytes]
+version = "1.0"
+
+[dependencies.futures-core]
+version = "0.3.28"
+default-features = false
+
+[dependencies.futures-util]
+version = "0.3.28"
+default-features = false
+
+[dependencies.http]
+version = "1"
+
+[dependencies.mime_guess]
+version = "2.0"
+optional = true
+default-features = false
+
+[dependencies.serde]
+version = "1.0"
+
+[dependencies.serde_json]
+version = "1.0"
+optional = true
+
+[dependencies.serde_urlencoded]
+version = "0.7.1"
+
+[dependencies.sync_wrapper]
+version = "1.0"
+features = ["futures"]
+
+[dependencies.tower-service]
+version = "0.3"
+
+[dependencies.url]
+version = "2.4"
+
+[dev-dependencies.libc]
+version = "0"
+
+[dev-dependencies.num_cpus]
+version = "1.0"
+
+[dev-dependencies.tower]
+version = "0.5.2"
+features = ["limit"]
+default-features = false
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.async-compression]
 version = "0.4.0"
 features = ["tokio"]
@@ -402,7 +421,7 @@ version = "0.6"
 optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.hyper-util]
-version = "0.1.3"
+version = "0.1.10"
 features = [
     "http1",
     "client",
@@ -499,6 +518,14 @@ features = [
 optional = true
 default-features = false
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.tower]
+version = "0.5.2"
+features = [
+    "timeout",
+    "util",
+]
+default-features = false
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.webpki-roots]
 version = "0.26.0"
 optional = true
@@ -532,7 +559,7 @@ features = [
 default-features = false
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies.hyper-util]
-version = "0.1.3"
+version = "0.1.10"
 features = [
     "http1",
     "http2",

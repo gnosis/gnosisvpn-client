@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.56"
 name = "bpaf"
-version = "0.9.15"
+version = "0.9.16"
 authors = ["Michael Baykov <manpacket@gmail.com>"]
 build = false
 include = [
@@ -24,6 +24,7 @@ include = [
     "LICENSE-MIT",
     "examples/**/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -234,7 +235,7 @@ name = "xorg"
 path = "examples/xorg.rs"
 
 [dependencies.bpaf_derive]
-version = "=0.5.13"
+version = "=0.5.16"
 optional = true
 
 [dependencies.owo-colors]

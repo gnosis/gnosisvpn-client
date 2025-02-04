@@ -16,6 +16,7 @@
 /// # use winnow::combinator::delimited;
 /// # use winnow::combinator::empty;
 /// # use winnow::error::ContextError;
+/// # use winnow::error::ErrMode;
 /// use winnow::combinator::seq;
 ///
 /// #[derive(Default, Debug, PartialEq)]
@@ -28,7 +29,7 @@
 /// }
 ///
 /// // Parse into structs / tuple-structs
-/// fn field(input: &mut &[u8]) -> PResult<Field> {
+/// fn field(input: &mut &[u8]) -> ModalResult<Field> {
 ///     seq!{Field {
 ///         namespace: empty.value(5),
 ///         name: alphanumeric1.map(|s: &[u8]| s.to_owned()),
@@ -43,8 +44,8 @@
 /// }
 ///
 /// // Or parse into tuples
-/// fn point(input: &mut &[u8]) -> PResult<(u32, u32)> {
-///     let num = dec_uint::<_, u32, ContextError>;
+/// fn point(input: &mut &[u8]) -> ModalResult<(u32, u32)> {
+///     let mut num = dec_uint::<_, u32, ErrMode<ContextError>>;
 ///     seq!(num, _: (space0, b',', space0), num).parse_next(input)
 /// }
 ///
@@ -74,36 +75,49 @@
 macro_rules! seq {
     ($($name: ident)::* { $($fields: tt)* }) => {
         $crate::combinator::trace(stringify!($($name)::*), move |input: &mut _| {
-            $crate::seq_parse_struct_fields!(input; $($fields)*);
-            #[allow(clippy::redundant_field_names)]
-            Ok($crate::seq_init_struct_fields!( ($($fields)*); $($name)::*;))
+            $crate::seq_parse_struct_fields!(
+                ( $($fields)* );
+                ( _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20 );
+                input ;
+            );
+            Ok($crate::seq_init_struct_fields!(
+                ( $($fields)* );
+                $($name)::* ;
+            ))
         })
     };
-    ($($name: ident)::* ( $($elements: tt)* )) => {
+    ($($name: ident)::* ( $($fields: tt)* )) => {
         $crate::combinator::trace(stringify!($($name)::*), move |input: &mut _| {
-            $crate::seq_parse_tuple_fields!( ($($elements)*) ; ).map(|t| {
-                $crate::seq_init_tuple_fields!(
-                    ($($elements)*);
-                    (t.0, t.1, t.2, t.3, t.4, t.5, t.6, t.7, t.8, t.9, t.10, t.11, t.12, t.13, t.14, t.15, t.16, t.17, t.18, t.19, t.20);
-                    $($name)::*;
-                )
-            }).parse_next(input)
+            $crate::seq_parse_tuple_fields!(
+                ( $($fields)* );
+                ( _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20 );
+                input;
+            );
+            Ok($crate::seq_init_tuple_fields!(
+                ( $($fields)* );
+                ( _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20 );
+                $($name)::*;
+            ))
         })
     };
-    (( $($elements: tt)* )) => {
+    (( $($fields: tt)* )) => {
         $crate::combinator::trace("tuple", move |input: &mut _| {
-            use $crate::Parser;
-            $crate::seq_parse_tuple_fields!( ($($elements)*) ; ).map(|t| {
-                $crate::seq_init_tuple_fields!(
-                    ($($elements)*);
-                    (t.0, t.1, t.2, t.3, t.4, t.5, t.6, t.7, t.8, t.9, t.10, t.11, t.12, t.13, t.14, t.15, t.16, t.17, t.18, t.19, t.20);
-                    ;
-                )
-            }).parse_next(input)
+            $crate::seq_parse_tuple_fields!(
+                ( $($fields)* );
+                ( _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20 );
+                input;
+            );
+            Ok($crate::seq_init_tuple_fields!(
+                ( $($fields)* );
+                ( _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20 );
+                ;
+            ))
         })
     };
-    ($($elements: tt)*) => {
-        $crate::seq!(($($elements)*))
+    ($($fields: tt)*) => {
+        $crate::seq!((
+            $($fields)*
+        ))
     };
 }
 
@@ -111,38 +125,52 @@ macro_rules! seq {
 #[doc(hidden)]
 macro_rules! seq_parse_struct_fields {
     (
-        $input: ident;
-        _ : $head_parser: expr, $($fields: tt)*
+        ( _ : $head_parser: expr, $($fields: tt)* );
+        ( $unnamed1: ident, $($unnamed: ident),* );
+        $input: ident ;
     ) => {
-        let _ = $crate::Parser::parse_next(&mut $head_parser, $input)?;
-        $crate::seq_parse_struct_fields!($input; $($fields)*)
+        let $unnamed1 = $crate::Parser::parse_next(&mut $head_parser, $input)?;
+        $crate::seq_parse_struct_fields!(
+            ( $($fields)* );
+            ( $($unnamed),* );
+            $input ;
+        )
     };
     (
-        $input: ident;
-        _ : $head_parser: expr
+        ( _ : $head_parser: expr );
+        ( $unnamed1: ident, $($unnamed: ident),* );
+        $input: ident ;
     ) => {
-        let _ = $crate::Parser::parse_next(&mut $head_parser, $input)?;
+        let $unnamed1 = $crate::Parser::parse_next(&mut $head_parser, $input)?;
     };
     (
-        $input: ident;
-        $head_field: ident : $head_parser: expr, $($fields: tt)*
+        ( $head_field: ident : $head_parser: expr, $($fields: tt)* );
+        ( $unnamed1: ident, $($unnamed: ident),* );
+        $input: ident ;
     ) => {
         let $head_field = $crate::Parser::parse_next(&mut $head_parser, $input)?;
-        $crate::seq_parse_struct_fields!($input; $($fields)*)
+        $crate::seq_parse_struct_fields!(
+            ( $($fields)* );
+            ( $($unnamed),* );
+            $input ;
+        )
     };
     (
-        $input: ident;
-        $head_field: ident : $head_parser: expr
+        ( $head_field: ident : $head_parser: expr );
+        ( $unnamed1: ident, $($unnamed: ident),* );
+        $input: ident ;
     ) => {
         let $head_field = $crate::Parser::parse_next(&mut $head_parser, $input)?;
     };
     (
-        $input: expr;
-        .. $update: expr
+        ( .. $update: expr );
+        ( $($unnamed: ident),* );
+        $input: expr ;
     ) => {};
     (
-        $input: expr;
-        $(,)?
+        ( $(,)? );
+        ( $($unnamed: ident),* );
+        $input: expr ;
     ) => {};
 }
 
@@ -150,79 +178,89 @@ macro_rules! seq_parse_struct_fields {
 #[doc(hidden)]
 macro_rules! seq_parse_tuple_fields {
     (
-        (_ : $head_parser: expr, $($fields: tt)* );
-        $($sequenced: tt)*
+        ( $(_ :)? $head_parser: expr, $($fields: tt)* );
+        ( $unnamed1: ident, $($unnamed: ident),* );
+        $input: ident;
     ) => {
-        $crate::seq_parse_tuple_fields!( ( $($fields)* ) ; $($sequenced)* $head_parser.void(), )
+        let $unnamed1 = $crate::Parser::parse_next(&mut $head_parser, $input)?;
+        $crate::seq_parse_tuple_fields!(
+            ( $($fields)* );
+            ( $($unnamed),* );
+            $input ;
+        )
     };
     (
-        (_ : $head_parser: expr);
-        $($sequenced: tt)*
+        ( $(_ :)? $head_parser: expr );
+        ( $unnamed1: ident, $($unnamed: ident),* );
+        $input: ident;
     ) => {
-        $crate::seq_parse_tuple_fields!((); $($sequenced)* $head_parser.void(), )
+        let $unnamed1 = $crate::Parser::parse_next(&mut $head_parser, $input)?;
     };
     (
-        ($head_parser: expr, $($fields: tt)*);
-        $($sequenced: tt)*
-    ) => {
-        $crate::seq_parse_tuple_fields!( ( $($fields)* ) ; $($sequenced)* $head_parser, )
-    };
-    (
-        ($head_parser: expr);
-        $($sequenced: tt)*
-    )=> {
-        $crate::seq_parse_tuple_fields!((); $($sequenced)* $head_parser, )
-    };
-    (
-        ();
-        $($sequenced: tt)*
-    ) => {
-        ($($sequenced)*)
-    };
+        ( $(,)? );
+        ( $($unnamed: ident),* );
+        $input: expr;
+    ) => {};
 }
 
 #[macro_export]
 #[doc(hidden)]
 macro_rules! seq_init_struct_fields {
     (
-        (_ : $head_parser: expr, $($fields: tt)*);
-        $($name: ident)::*;
+        ( _ : $head_parser: expr, $($fields: tt)* );
+        $($name: ident)::* ;
         $($inits: tt)*
     ) => {
-        $crate::seq_init_struct_fields!( ( $($fields)* ) ; $($name)::* ; $($inits)* )
+        $crate::seq_init_struct_fields!(
+            ( $($fields)* );
+            $($name)::* ;
+            $($inits)*
+        )
     };
     (
-        (_ : $head_parser: expr);
-        $($name: ident)::*;
+        ( _ : $head_parser: expr );
+        $($name: ident)::* ;
         $($inits: tt)*
     ) => {
-        $crate::seq_init_struct_fields!( (); $($name)::* ; $($inits)* )
+        $crate::seq_init_struct_fields!(
+            ();
+            $($name)::* ;
+            $($inits)*
+        )
     };
     (
-        ($head_field: ident : $head_parser: expr, $($fields: tt)*);
-        $($name: ident)::*;
+        ( $head_field: ident : $head_parser: expr, $($fields: tt)* );
+        $($name: ident)::* ;
         $($inits: tt)*
     ) =>
     {
-        $crate::seq_init_struct_fields!( ( $($fields)* ) ; $($name)::* ; $($inits)* $head_field: $head_field, )
+        $crate::seq_init_struct_fields!(
+            ( $($fields)* );
+            $($name)::* ;
+            $($inits)* $head_field,
+        )
     };
     (
-        ($head_field: ident : $head_parser: expr);
-        $($name: ident)::*;
+        ( $head_field: ident : $head_parser: expr );
+        $($name: ident)::* ;
         $($inits: tt)*
     ) => {
-        $crate::seq_init_struct_fields!( (); $($name)::* ; $($inits)* $head_field: $head_field,)
+        $crate::seq_init_struct_fields!(
+            ();
+            $($name)::* ;
+            $($inits)* $head_field,
+        )
     };
     (
-        (.. $update: expr);
-        $($name: ident)::*;
+        ( .. $update: expr );
+        $($name: ident)::* ;
         $($inits: tt)*
     ) => {
         $($name)::* { $($inits)* ..$update }
     };
     (
-        ($(,)?);
-        $($name: ident)::*;
+        ( $(,)? );
+        $($name: ident)::* ;
         $($inits: tt)*
     ) => {
         $($name)::* { $($inits)* }
@@ -233,43 +271,64 @@ macro_rules! seq_init_struct_fields {
 #[doc(hidden)]
 macro_rules! seq_init_tuple_fields {
     (
-        (_ : $head_parser: expr, $($fields: tt)*);
-        ($head_arg: expr, $($args: expr),*);
+        ( _ : $head_parser: expr, $($fields: tt)* );
+        ( $unnamed1: ident, $($unnamed: ident),* );
         $($name: ident)::*;
         $($inits: tt)*
     ) => {
-        $crate::seq_init_tuple_fields!( ( $($fields)* ); ( $($args),* ) ; $($name)::* ; $($inits)* )
+        $crate::seq_init_tuple_fields!(
+            ( $($fields)* );
+            ( $($unnamed),* );
+            $($name)::* ;
+            $($inits)*
+        )
     };
     (
-        (_ : $head_parser: expr);
-        ($head_arg: expr, $($args: expr),*);
+        ( _ : $head_parser: expr );
+        ( $unnamed1: ident, $($unnamed: ident),* );
         $($name: ident)::*;
         $($inits: tt)*
     ) => {
-        $crate::seq_init_tuple_fields!((); ( $($args),* ); $($name)::* ; $($inits)*)
+        $crate::seq_init_tuple_fields!(
+            ();
+            ( $($unnamed),* );
+            $($name)::* ;
+            $($inits)*
+        )
     };
     (
-        ($head_parser: expr, $($fields: tt)*);
-        ($head_arg: expr, $($args: expr),*);
+        ( $head_parser: expr, $($fields: tt)* );
+        ( $unnamed1: ident, $($unnamed: ident),* );
+        $($name: ident)::*;
+        $($inits: tt)*
+    ) =>
+    {
+        $crate::seq_init_tuple_fields!(
+            ( $($fields)* );
+            ( $($unnamed),* );
+            $($name)::* ;
+            $($inits)* $unnamed1,
+        )
+    };
+    (
+        ( $head_parser: expr );
+        ( $unnamed1: ident, $($unnamed: ident),* );
         $($name: ident)::*;
         $($inits: tt)*
     ) => {
-        $crate::seq_init_tuple_fields!( ( $($fields)* ) ; ( $($args),* ) ; $($name)::* ; $($inits)* $head_arg, )
+        $crate::seq_init_tuple_fields!(
+            ();
+            ( $($unnamed),* );
+            $($name)::* ;
+            $($inits)* $unnamed1,
+        )
     };
     (
-        ($head_parser: expr);
-        ($head_arg: expr, $($args: expr),*);
+        ( $(,)? );
+        ( $unnamed1: ident, $($unnamed: ident),* );
         $($name: ident)::*;
         $($inits: tt)*
     ) => {
-        $crate::seq_init_tuple_fields!((); ( $($args),* ); $($name)::* ; $($inits)* $head_arg)
-    };
-    (
-        ();
-        ($($args: expr),*);
-        $($name: ident)::*;
-        $($inits: expr),* $(,)?
-    ) => {
-        $($name)::*( $($inits,)* )
+        $($name)::* ( $($inits)* )
     };
 }

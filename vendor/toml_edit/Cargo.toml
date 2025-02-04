@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "toml_edit"
-version = "0.22.22"
+version = "0.22.23"
 authors = [
     "Andronik Ordian <write@reusable.software>",
     "Ed Page <eopage@gmail.com>",
@@ -30,6 +30,7 @@ include = [
     "examples/**/*",
     "tests/**/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -94,6 +95,21 @@ replace = """
 [Unreleased]: https://github.com/toml-rs/toml/compare/{{tag_name}}...HEAD"""
 search = "<!-- next-url -->"
 
+[features]
+default = [
+    "parse",
+    "display",
+]
+display = []
+parse = ["dep:winnow"]
+perf = ["dep:kstring"]
+serde = [
+    "dep:serde",
+    "toml_datetime/serde",
+    "dep:serde_spanned",
+]
+unbounded = []
+
 [lib]
 name = "toml_edit"
 path = "src/lib.rs"
@@ -153,7 +169,7 @@ version = "1.0.145"
 optional = true
 
 [dependencies.serde_spanned]
-version = "0.6.7"
+version = "0.6.8"
 features = ["serde"]
 optional = true
 
@@ -161,7 +177,7 @@ optional = true
 version = "0.6.8"
 
 [dependencies.winnow]
-version = "0.6.18"
+version = "0.7.0"
 optional = true
 
 [dev-dependencies.libtest-mimic]
@@ -181,21 +197,6 @@ version = "1.11.0"
 
 [dev-dependencies.toml-test-harness]
 version = "0.4.8"
-
-[features]
-default = [
-    "parse",
-    "display",
-]
-display = []
-parse = ["dep:winnow"]
-perf = ["dep:kstring"]
-serde = [
-    "dep:serde",
-    "toml_datetime/serde",
-    "dep:serde_spanned",
-]
-unbounded = []
 
 [lints.clippy]
 bool_assert_comparison = "allow"
@@ -242,6 +243,7 @@ rc_mutex = "warn"
 redundant_feature_names = "warn"
 ref_option_ref = "warn"
 rest_pat_in_fully_bound_structs = "warn"
+result_large_err = "allow"
 same_functions_in_if_condition = "warn"
 self_named_module_files = "warn"
 semicolon_if_nothing_returned = "warn"
@@ -252,6 +254,7 @@ string_lit_as_bytes = "warn"
 string_to_string = "warn"
 todo = "warn"
 trait_duplication_in_bounds = "warn"
+uninlined_format_args = "warn"
 verbose_file_reads = "warn"
 wildcard_imports = "warn"
 zero_sized_map_values = "warn"

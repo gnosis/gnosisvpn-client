@@ -75,6 +75,27 @@ fn any_private_key() {
 }
 
 #[test]
+fn no_trailing_newline() {
+    let data = include_bytes!("data/rsa-key-no-trailing-newline.pem");
+    assert_eq!(
+        PrivatePkcs8KeyDer::pem_slice_iter(data)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+            .len(),
+        1
+    );
+
+    assert_eq!(
+        PrivatePkcs8KeyDer::pem_file_iter("tests/data/rsa-key-no-trailing-newline.pem")
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
+#[test]
 fn certificates() {
     let data = include_bytes!("data/zen.pem");
 
@@ -309,5 +330,5 @@ fn slice_iterator() {
         CertificateDer::from(&b"hi"[..])
     );
     assert_eq!(iter.remainder(), b"goodbye\n");
-    assert!(matches!(iter.next(), None));
+    assert!(iter.next().is_none());
 }

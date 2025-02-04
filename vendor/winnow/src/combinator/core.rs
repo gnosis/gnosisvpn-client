@@ -1,97 +1,26 @@
 use crate::combinator::trace;
-use crate::error::{ErrMode, ErrorKind, Needed, ParserError};
+use crate::error::{ModalError, ParserError};
 use crate::stream::Stream;
 use crate::*;
 
-/// Return the remaining input.
-///
-/// # Effective Signature
-///
-/// Assuming you are parsing a `&str` [Stream]:
-/// ```rust
-/// # use winnow::prelude::*;;
-/// pub fn rest<'i>(input: &mut &'i str) -> PResult<&'i str>
-/// # {
-/// #     winnow::combinator::rest.parse_next(input)
-/// # }
-/// ```
-///
-/// # Example
-///
-/// ```rust
-/// # use winnow::prelude::*;
-/// # use winnow::error::ErrorKind;
-/// # use winnow::error::InputError;
-/// use winnow::combinator::rest;
-/// assert_eq!(rest::<_,InputError<_>>.parse_peek("abc"), Ok(("", "abc")));
-/// assert_eq!(rest::<_,InputError<_>>.parse_peek(""), Ok(("", "")));
-/// ```
-#[inline]
-pub fn rest<Input, Error>(input: &mut Input) -> PResult<<Input as Stream>::Slice, Error>
-where
-    Input: Stream,
-    Error: ParserError<Input>,
-{
-    trace("rest", move |input: &mut Input| Ok(input.finish())).parse_next(input)
-}
-
-/// Return the length of the remaining input.
-///
-/// Note: this does not advance the [`Stream`]
-///
-/// # Effective Signature
-///
-/// Assuming you are parsing a `&str` [Stream]:
-/// ```rust
-/// # use winnow::prelude::*;;
-/// pub fn rest_len(input: &mut &str) -> PResult<usize>
-/// # {
-/// #     winnow::combinator::rest_len.parse_next(input)
-/// # }
-/// ```
-///
-/// # Example
-///
-/// ```rust
-/// # use winnow::prelude::*;
-/// # use winnow::error::ErrorKind;
-/// # use winnow::error::InputError;
-/// use winnow::combinator::rest_len;
-/// assert_eq!(rest_len::<_,InputError<_>>.parse_peek("abc"), Ok(("abc", 3)));
-/// assert_eq!(rest_len::<_,InputError<_>>.parse_peek(""), Ok(("", 0)));
-/// ```
-#[inline]
-pub fn rest_len<Input, Error>(input: &mut Input) -> PResult<usize, Error>
-where
-    Input: Stream,
-    Error: ParserError<Input>,
-{
-    trace("rest_len", move |input: &mut Input| {
-        let len = input.eof_offset();
-        Ok(len)
-    })
-    .parse_next(input)
-}
-
-/// Apply a [`Parser`], producing `None` on [`ErrMode::Backtrack`].
+/// Apply a [`Parser`], producing `None` on [`ErrMode::Backtrack`][crate::error::ErrMode::Backtrack].
 ///
 /// To chain an error up, see [`cut_err`].
 ///
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError};
 /// # use winnow::prelude::*;
 /// use winnow::combinator::opt;
 /// use winnow::ascii::alpha1;
 /// # fn main() {
 ///
-/// fn parser(i: &str) -> IResult<&str, Option<&str>> {
-///   opt(alpha1).parse_peek(i)
+/// fn parser<'i>(i: &mut &'i str) -> ModalResult<Option<&'i str>> {
+///   opt(alpha1).parse_next(i)
 /// }
 ///
-/// assert_eq!(parser("abcd;"), Ok((";", Some("abcd"))));
-/// assert_eq!(parser("123;"), Ok(("123;", None)));
+/// assert_eq!(parser.parse_peek("abcd;"), Ok((";", Some("abcd"))));
+/// assert_eq!(parser.parse_peek("123;"), Ok(("123;", None)));
 /// # }
 /// ```
 pub fn opt<Input: Stream, Output, Error, ParseNext>(
@@ -105,7 +34,7 @@ where
         let start = input.checkpoint();
         match parser.parse_next(input) {
             Ok(o) => Ok(Some(o)),
-            Err(ErrMode::Backtrack(_)) => {
+            Err(e) if e.is_backtrack() => {
                 input.reset(&start);
                 Ok(None)
             }
@@ -119,20 +48,22 @@ where
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, IResult};
 /// # use winnow::prelude::*;
+/// # use winnow::combinator::opt;
 /// use winnow::combinator::cond;
 /// use winnow::ascii::alpha1;
 /// # fn main() {
 ///
-/// fn parser(b: bool, i: &str) -> IResult<&str, Option<&str>> {
-///   cond(b, alpha1).parse_peek(i)
+/// fn parser<'i>(i: &mut &'i str) -> ModalResult<Option<&'i str>> {
+///   let prefix = opt("-").parse_next(i)?;
+///   let condition = prefix.is_some();
+///   cond(condition, alpha1).parse_next(i)
 /// }
 ///
-/// assert_eq!(parser(true, "abcd;"), Ok((";", Some("abcd"))));
-/// assert_eq!(parser(false, "abcd;"), Ok(("abcd;", None)));
-/// assert_eq!(parser(true, "123;"), Err(ErrMode::Backtrack(InputError::new("123;", ErrorKind::Slice))));
-/// assert_eq!(parser(false, "123;"), Ok(("123;", None)));
+/// assert_eq!(parser.parse_peek("-abcd;"), Ok((";", Some("abcd"))));
+/// assert_eq!(parser.parse_peek("abcd;"), Ok(("abcd;", None)));
+/// assert!(parser.parse_peek("-123;").is_err());
+/// assert_eq!(parser.parse_peek("123;"), Ok(("123;", None)));
 /// # }
 /// ```
 pub fn cond<Input, Output, Error, ParseNext>(
@@ -153,21 +84,24 @@ where
     })
 }
 
-/// Tries to apply its parser without consuming the input.
+/// Apply the parser without advancing the input.
+///
+/// To lookahead and only advance on success, see [`opt`].
 ///
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, IResult};
 /// # use winnow::prelude::*;
 /// use winnow::combinator::peek;
 /// use winnow::ascii::alpha1;
 /// # fn main() {
 ///
-/// let mut parser = peek(alpha1);
+/// fn parser<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
+///     peek(alpha1).parse_next(input)
+/// }
 ///
 /// assert_eq!(parser.parse_peek("abcd;"), Ok(("abcd;", "abcd")));
-/// assert_eq!(parser.parse_peek("123;"), Err(ErrMode::Backtrack(InputError::new("123;", ErrorKind::Slice))));
+/// assert!(parser.parse_peek("123;").is_err());
 /// # }
 /// ```
 #[doc(alias = "look_ahead")]
@@ -197,7 +131,7 @@ where
 /// Assuming you are parsing a `&str` [Stream]:
 /// ```rust
 /// # use winnow::prelude::*;;
-/// pub fn eof<'i>(input: &mut &'i str) -> PResult<&'i str>
+/// pub fn eof<'i>(input: &mut &'i str) -> ModalResult<&'i str>
 /// # {
 /// #     winnow::combinator::eof.parse_next(input)
 /// # }
@@ -207,17 +141,18 @@ where
 ///
 /// ```rust
 /// # use std::str;
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError};
 /// # use winnow::combinator::eof;
 /// # use winnow::prelude::*;
 ///
-/// let mut parser = eof;
-/// assert_eq!(parser.parse_peek("abc"), Err(ErrMode::Backtrack(InputError::new("abc", ErrorKind::Eof))));
+/// fn parser<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
+///     eof.parse_next(input)
+/// }
+/// assert!(parser.parse_peek("abc").is_err());
 /// assert_eq!(parser.parse_peek(""), Ok(("", "")));
 /// ```
 #[doc(alias = "end")]
 #[doc(alias = "eoi")]
-pub fn eof<Input, Error>(input: &mut Input) -> PResult<<Input as Stream>::Slice, Error>
+pub fn eof<Input, Error>(input: &mut Input) -> Result<<Input as Stream>::Slice, Error>
 where
     Input: Stream,
     Error: ParserError<Input>,
@@ -226,7 +161,7 @@ where
         if input.eof_offset() == 0 {
             Ok(input.next_slice(0))
         } else {
-            Err(ErrMode::from_error_kind(input, ErrorKind::Eof))
+            Err(ParserError::from_input(input))
         }
     })
     .parse_next(input)
@@ -234,21 +169,26 @@ where
 
 /// Succeeds if the child parser returns an error.
 ///
+/// <div class="warning">
+///
 /// **Note:** This does not advance the [`Stream`]
+///
+/// </div>
 ///
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, IResult};
 /// # use winnow::prelude::*;
 /// use winnow::combinator::not;
 /// use winnow::ascii::alpha1;
 /// # fn main() {
 ///
-/// let mut parser = not(alpha1);
+/// fn parser<'i>(input: &mut &'i str) -> ModalResult<()> {
+///     not(alpha1).parse_next(input)
+/// }
 ///
 /// assert_eq!(parser.parse_peek("123"), Ok(("123", ())));
-/// assert_eq!(parser.parse_peek("abcd"), Err(ErrMode::Backtrack(InputError::new("abcd", ErrorKind::Not))));
+/// assert!(parser.parse_peek("abcd").is_err());
 /// # }
 /// ```
 pub fn not<Input, Output, Error, ParseNext>(mut parser: ParseNext) -> impl Parser<Input, (), Error>
@@ -262,14 +202,14 @@ where
         let res = parser.parse_next(input);
         input.reset(&start);
         match res {
-            Ok(_) => Err(ErrMode::from_error_kind(input, ErrorKind::Not)),
-            Err(ErrMode::Backtrack(_)) => Ok(()),
+            Ok(_) => Err(ParserError::from_input(input)),
+            Err(e) if e.is_backtrack() => Ok(()),
             Err(e) => Err(e),
         }
     })
 }
 
-/// Transforms an [`ErrMode::Backtrack`] (recoverable) to [`ErrMode::Cut`] (unrecoverable)
+/// Transforms an [`ErrMode::Backtrack`][crate::error::ErrMode::Backtrack] (recoverable) to [`ErrMode::Cut`][crate::error::ErrMode::Cut] (unrecoverable)
 ///
 /// This commits the parse result, preventing alternative branch paths like with
 /// [`winnow::combinator::alt`][crate::combinator::alt].
@@ -280,50 +220,49 @@ where
 ///
 /// Without `cut_err`:
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError};
 /// # use winnow::token::one_of;
+/// # use winnow::token::rest;
 /// # use winnow::ascii::digit1;
-/// # use winnow::combinator::rest;
 /// # use winnow::combinator::alt;
 /// # use winnow::combinator::preceded;
 /// # use winnow::prelude::*;
 /// # fn main() {
 ///
-/// fn parser(input: &str) -> IResult<&str, &str> {
+/// fn parser<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
 ///   alt((
 ///     preceded(one_of(['+', '-']), digit1),
 ///     rest
-///   )).parse_peek(input)
+///   )).parse_next(input)
 /// }
 ///
-/// assert_eq!(parser("+10 ab"), Ok((" ab", "10")));
-/// assert_eq!(parser("ab"), Ok(("", "ab")));
-/// assert_eq!(parser("+"), Ok(("", "+")));
+/// assert_eq!(parser.parse_peek("+10 ab"), Ok((" ab", "10")));
+/// assert_eq!(parser.parse_peek("ab"), Ok(("", "ab")));
+/// assert_eq!(parser.parse_peek("+"), Ok(("", "+")));
 /// # }
 /// ```
 ///
 /// With `cut_err`:
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError};
+/// # use winnow::{error::ErrMode, error::ContextError};
 /// # use winnow::prelude::*;
 /// # use winnow::token::one_of;
+/// # use winnow::token::rest;
 /// # use winnow::ascii::digit1;
-/// # use winnow::combinator::rest;
 /// # use winnow::combinator::alt;
 /// # use winnow::combinator::preceded;
 /// use winnow::combinator::cut_err;
 /// # fn main() {
 ///
-/// fn parser(input: &str) -> IResult<&str, &str> {
+/// fn parser<'i>(input: &mut &'i str) -> ModalResult<&'i str> {
 ///   alt((
 ///     preceded(one_of(['+', '-']), cut_err(digit1)),
 ///     rest
-///   )).parse_peek(input)
+///   )).parse_next(input)
 /// }
 ///
-/// assert_eq!(parser("+10 ab"), Ok((" ab", "10")));
-/// assert_eq!(parser("ab"), Ok(("", "ab")));
-/// assert_eq!(parser("+"), Err(ErrMode::Cut(InputError::new("", ErrorKind::Slice ))));
+/// assert_eq!(parser.parse_peek("+10 ab"), Ok((" ab", "10")));
+/// assert_eq!(parser.parse_peek("ab"), Ok(("", "ab")));
+/// assert_eq!(parser.parse_peek("+"), Err(ErrMode::Cut(ContextError::new())));
 /// # }
 /// ```
 pub fn cut_err<Input, Output, Error, ParseNext>(
@@ -331,7 +270,7 @@ pub fn cut_err<Input, Output, Error, ParseNext>(
 ) -> impl Parser<Input, Output, Error>
 where
     Input: Stream,
-    Error: ParserError<Input>,
+    Error: ParserError<Input> + ModalError,
     ParseNext: Parser<Input, Output, Error>,
 {
     trace("cut_err", move |input: &mut Input| {
@@ -339,7 +278,7 @@ where
     })
 }
 
-/// Transforms an [`ErrMode::Cut`] (unrecoverable) to [`ErrMode::Backtrack`] (recoverable)
+/// Transforms an [`ErrMode::Cut`][crate::error::ErrMode::Cut] (unrecoverable) to [`ErrMode::Backtrack`][crate::error::ErrMode::Backtrack] (recoverable)
 ///
 /// This attempts the parse, allowing other parsers to be tried on failure, like with
 /// [`winnow::combinator::alt`][crate::combinator::alt].
@@ -348,7 +287,7 @@ pub fn backtrack_err<Input, Output, Error, ParseNext>(
 ) -> impl Parser<Input, Output, Error>
 where
     Input: Stream,
-    Error: ParserError<Input>,
+    Error: ParserError<Input> + ModalError,
     ParseNext: Parser<Input, Output, Error>,
 {
     trace("backtrack_err", move |input: &mut Input| {
@@ -370,14 +309,15 @@ where
 /// # use winnow::prelude::*;
 /// # use winnow::combinator::todo;
 ///
-/// fn parser(input: &mut &str) -> PResult<u64> {
+/// fn parser(input: &mut &str) -> ModalResult<u64> {
 ///     todo(input)
 /// }
 /// ```
 #[track_caller]
-pub fn todo<Input, Output, Error>(input: &mut Input) -> PResult<Output, Error>
+pub fn todo<Input, Output, Error>(input: &mut Input) -> Result<Output, Error>
 where
     Input: Stream,
+    Error: ParserError<Input>,
 {
     #![allow(clippy::todo)]
     trace("todo", move |_input: &mut Input| {
@@ -391,19 +331,20 @@ where
 /// Call the iterator's [`ParserIterator::finish`] method to get the remaining input if successful,
 /// or the error value if we encountered an error.
 ///
-/// On [`ErrMode::Backtrack`], iteration will stop. To instead chain an error up, see [`cut_err`].
+/// On [`ErrMode::Backtrack`][crate::error::ErrMode::Backtrack], iteration will stop. To instead chain an error up, see [`cut_err`].
 ///
 /// # Example
 ///
 /// ```rust
-/// use winnow::{combinator::iterator, IResult, ascii::alpha1, combinator::terminated};
+/// # use winnow::prelude::*;
+/// use winnow::{combinator::iterator, ascii::alpha1, combinator::terminated};
 /// use std::collections::HashMap;
 ///
 /// let data = "abc|defg|hijkl|mnopqr|123";
 /// let mut it = iterator(data, terminated(alpha1, "|"));
 ///
 /// let parsed = it.map(|v| (v, v.len())).collect::<HashMap<_,_>>();
-/// let res: IResult<_,_> = it.finish();
+/// let res: ModalResult<_> = it.finish();
 ///
 /// assert_eq!(parsed, [("abc", 3usize), ("defg", 4), ("hijkl", 5), ("mnopqr", 6)].iter().cloned().collect());
 /// assert_eq!(res, Ok(("123", ())));
@@ -441,21 +382,22 @@ impl<F, I, O, E> ParserIterator<F, I, O, E>
 where
     F: Parser<I, O, E>,
     I: Stream,
+    E: ParserError<I>,
 {
     /// Returns the remaining input if parsing was successful, or the error if we encountered an error.
-    pub fn finish(mut self) -> PResult<(I, ()), E> {
+    pub fn finish(mut self) -> Result<(I, ()), E> {
         match self.state.take().unwrap() {
             State::Running | State::Done => Ok((self.input, ())),
-            State::Failure(e) => Err(ErrMode::Cut(e)),
-            State::Incomplete(i) => Err(ErrMode::Incomplete(i)),
+            State::Cut(e) => Err(e),
         }
     }
 }
 
-impl<'a, F, I, O, E> core::iter::Iterator for &'a mut ParserIterator<F, I, O, E>
+impl<F, I, O, E> core::iter::Iterator for &mut ParserIterator<F, I, O, E>
 where
     F: Parser<I, O, E>,
     I: Stream,
+    E: ParserError<I>,
 {
     type Item = O;
 
@@ -468,17 +410,13 @@ where
                     self.state = Some(State::Running);
                     Some(o)
                 }
-                Err(ErrMode::Backtrack(_)) => {
+                Err(e) if e.is_backtrack() => {
                     self.input.reset(&start);
                     self.state = Some(State::Done);
                     None
                 }
-                Err(ErrMode::Cut(e)) => {
-                    self.state = Some(State::Failure(e));
-                    None
-                }
-                Err(ErrMode::Incomplete(i)) => {
-                    self.state = Some(State::Incomplete(i));
+                Err(e) => {
+                    self.state = Some(State::Cut(e));
                     None
                 }
             }
@@ -491,8 +429,7 @@ where
 enum State<E> {
     Running,
     Done,
-    Failure(E),
-    Incomplete(Needed),
+    Cut(E),
 }
 
 /// Succeed, consuming no input
@@ -505,30 +442,34 @@ enum State<E> {
 /// - [`Parser::default_value`]
 /// - [`Parser::map`]
 ///
+/// <div class="warning">
+///
 /// **Note:** This never advances the [`Stream`]
+///
+/// </div>
 ///
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError};
 /// # use winnow::prelude::*;
 /// use winnow::combinator::alt;
 /// use winnow::combinator::empty;
 ///
-/// fn sign(input: &str) -> IResult<&str, isize> {
+/// fn sign(input: &mut &str) -> ModalResult<isize> {
 ///     alt((
 ///         '-'.value(-1),
 ///         '+'.value(1),
 ///         empty.value(1)
-///     )).parse_peek(input)
+///     )).parse_next(input)
 /// }
-/// assert_eq!(sign("+10"), Ok(("10", 1)));
-/// assert_eq!(sign("-10"), Ok(("10", -1)));
-/// assert_eq!(sign("10"), Ok(("10", 1)));
+/// assert_eq!(sign.parse_peek("+10"), Ok(("10", 1)));
+/// assert_eq!(sign.parse_peek("-10"), Ok(("10", -1)));
+/// assert_eq!(sign.parse_peek("10"), Ok(("10", 1)));
 /// ```
 #[doc(alias = "value")]
 #[doc(alias = "success")]
-pub fn empty<Input, Error>(_input: &mut Input) -> PResult<(), Error>
+#[inline]
+pub fn empty<Input, Error>(_input: &mut Input) -> Result<(), Error>
 where
     Input: Stream,
     Error: ParserError<Input>,
@@ -544,21 +485,22 @@ where
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, IResult};
+/// # use winnow::{error::ErrMode, error::InputError};
 /// # use winnow::prelude::*;
 /// use winnow::combinator::fail;
 ///
-/// let s = "string";
-/// assert_eq!(fail::<_, &str, _>.parse_peek(s), Err(ErrMode::Backtrack(InputError::new(s, ErrorKind::Fail))));
+/// fn parser<'i>(input: &mut &'i str) -> ModalResult<(), InputError<&'i str>> {
+///     fail.parse_next(input)
+/// }
+///
+/// assert_eq!(parser.parse_peek("string"), Err(ErrMode::Backtrack(InputError::at("string"))));
 /// ```
 #[doc(alias = "unexpected")]
-pub fn fail<Input, Output, Error>(i: &mut Input) -> PResult<Output, Error>
+#[inline]
+pub fn fail<Input, Output, Error>(i: &mut Input) -> Result<Output, Error>
 where
     Input: Stream,
     Error: ParserError<Input>,
 {
-    trace("fail", |i: &mut Input| {
-        Err(ErrMode::from_error_kind(i, ErrorKind::Fail))
-    })
-    .parse_next(i)
+    trace("fail", |i: &mut Input| Err(ParserError::from_input(i))).parse_next(i)
 }
