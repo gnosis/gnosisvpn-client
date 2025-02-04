@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.74"
 name = "clap_derive"
-version = "4.5.18"
+version = "4.5.24"
 build = false
 include = [
     "build.rs",
@@ -24,6 +24,7 @@ include = [
     "benches/**/*",
     "examples/**/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -52,6 +53,13 @@ dependent-version = "upgrade"
 shared-version = true
 tag-name = "v{{version}}"
 
+[features]
+debug = []
+default = []
+deprecated = []
+raw-deprecated = ["deprecated"]
+unstable-v5 = ["deprecated"]
+
 [lib]
 name = "clap_derive"
 path = "src/lib.rs"
@@ -70,13 +78,6 @@ version = "1.0.9"
 [dependencies.syn]
 version = "2.0.8"
 features = ["full"]
-
-[features]
-debug = []
-default = []
-deprecated = []
-raw-deprecated = ["deprecated"]
-unstable-v5 = ["deprecated"]
 
 [lints.clippy]
 assigning_clones = "allow"
@@ -133,6 +134,7 @@ string_add_assign = "warn"
 string_lit_as_bytes = "warn"
 todo = "warn"
 trait_duplication_in_bounds = "warn"
+uninlined_format_args = "warn"
 verbose_file_reads = "warn"
 zero_sized_map_values = "warn"
 

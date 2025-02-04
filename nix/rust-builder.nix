@@ -32,13 +32,17 @@ let
   buildPlatform = pkgs.stdenv.buildPlatform;
   hostPlatform = pkgs.stdenv.hostPlatform;
 
-
   envCase = triple: pkgsLocal.lib.strings.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] triple);
 
+  # when building for Linux amd64 use musl to build static binaries
+  useMusl = hostPlatform.config == "x86_64-unknown-linux-gnu";
 
   cargoTarget =
     if hostPlatform.config == "armv7l-unknown-linux-gnueabihf" then
-      "armv7-unknown-linux-gnueabihf" else hostPlatform.config;
+      "armv7-unknown-linux-gnueabihf"
+    else if useMusl then
+      pkgs.lib.systems.examples.musl64.config
+    else hostPlatform.config;
 
   rustToolchain =
     if useRustNightly
@@ -49,11 +53,18 @@ let
 
   craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
-  buildEnv = {
+  buildEnvBase = {
     CARGO_BUILD_TARGET = cargoTarget;
     "CARGO_TARGET_${envCase cargoTarget}_LINKER" = "${pkgs.stdenv.cc.targetPrefix}cc";
     HOST_CC = "${pkgs.stdenv.cc.nativePrefix}cc";
   };
+
+  buildEnv =
+    if useMusl then
+      buildEnvBase // {
+        CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
+      } else buildEnvBase;
+
 in
 {
   inherit rustToolchain;

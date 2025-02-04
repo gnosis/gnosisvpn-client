@@ -194,7 +194,7 @@ impl Certificate {
 
         Self::read_pem_certs(&mut reader)?
             .iter()
-            .map(|cert_vec| Certificate::from_der(&cert_vec))
+            .map(|cert_vec| Certificate::from_der(cert_vec))
             .collect::<crate::Result<Vec<Certificate>>>()
     }
 
@@ -282,7 +282,7 @@ impl Identity {
     /// Parses a chain of PEM encoded X509 certificates, with the leaf certificate first.
     /// `key` is a PEM encoded PKCS #8 formatted private key for the leaf certificate.
     ///
-    /// The certificate chain should contain any intermediate cerficates that should be sent to
+    /// The certificate chain should contain any intermediate certificates that should be sent to
     /// clients to allow them to build a chain to a trusted root.
     ///
     /// A certificate chain here means a series of PEM encoded certificates concatenated together.
@@ -585,6 +585,7 @@ impl fmt::Debug for TlsBackend {
     }
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for TlsBackend {
     fn default() -> TlsBackend {
         #[cfg(all(feature = "default-tls", not(feature = "http3")))]

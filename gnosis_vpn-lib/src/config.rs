@@ -86,8 +86,8 @@ pub fn path() -> PathBuf {
             PathBuf::from(path)
         }
         Err(std::env::VarError::NotPresent) => PathBuf::from(DEFAULT_PATH),
-        Err(err) => {
-            tracing::warn!(?err, "using default config path");
+        Err(e) => {
+            tracing::warn!(warn = ?e, "using default config path");
             PathBuf::from(DEFAULT_PATH)
         }
     }

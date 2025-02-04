@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.71.1"
 name = "litemap"
-version = "0.7.3"
+version = "0.7.4"
 authors = ["The ICU4X Project Developers"]
+build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,6 +26,10 @@ include = [
     "LICENSE",
     "README.md",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A key-value Map implementation based on a flat, sorted Vec."
 documentation = "https://docs.rs/litemap"
 readme = "README.md"
@@ -48,7 +53,17 @@ all-features = true
 independent = true
 
 [lib]
+name = "litemap"
+path = "src/lib.rs"
 bench = false
+
+[[example]]
+name = "language_names_hash_map"
+path = "examples/language_names_hash_map.rs"
+
+[[example]]
+name = "language_names_lite_map"
+path = "examples/language_names_lite_map.rs"
 
 [[example]]
 name = "litemap_bincode"
@@ -61,20 +76,27 @@ path = "examples/litemap_postcard.rs"
 required-features = ["serde"]
 
 [[test]]
+name = "rkyv"
+path = "tests/rkyv.rs"
+
+[[test]]
 name = "serde"
+path = "tests/serde.rs"
 required-features = ["serde"]
 
 [[test]]
 name = "store"
+path = "tests/store.rs"
 required-features = ["testing"]
 
 [[bench]]
 name = "litemap"
+path = "benches/litemap.rs"
 harness = false
 required-features = ["serde"]
 
 [dependencies.databake]
-version = "0.1.8"
+version = "0.2.0"
 optional = true
 default-features = false
 
@@ -85,7 +107,7 @@ optional = true
 default-features = false
 
 [dependencies.yoke]
-version = "0.7.4"
+version = "0.7.5"
 features = ["derive"]
 optional = true
 default-features = false
@@ -118,5 +140,5 @@ serde = ["dep:serde"]
 testing = ["alloc"]
 yoke = ["dep:yoke"]
 
-[target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies.criterion]
 version = "0.5.0"

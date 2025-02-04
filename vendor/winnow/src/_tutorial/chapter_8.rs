@@ -1,18 +1,19 @@
 //! # Chapter 8: Debugging
 //!
 //! When things inevitably go wrong, you can introspect the parsing state by running your test case
-//! with `--features winnow/debug`:
+//! with `--features winnow/debug`.
 //!
+//! For example, the trace output of an [escaped string parser][crate::_topic::language#escaped-strings]:
 //! ![Trace output from string example](https://raw.githubusercontent.com/winnow-rs/winnow/main/assets/trace.svg "Example output")
 //!
 //! You can extend your own parsers to show up by wrapping their body with
 //! [`trace`][crate::combinator::trace].  Going back to [`do_nothing_parser`][super::chapter_1].
 //! ```rust
-//! # use winnow::PResult;
+//! # use winnow::ModalResult;
 //! # use winnow::Parser;
 //! use winnow::combinator::trace;
 //!
-//! pub fn do_nothing_parser<'s>(input: &mut &'s str) -> PResult<&'s str> {
+//! pub fn do_nothing_parser<'s>(input: &mut &'s str) -> ModalResult<&'s str> {
 //!     trace(
 //!         "do_nothing_parser",
 //!         |i: &mut _| Ok("")

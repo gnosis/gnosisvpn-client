@@ -12,8 +12,13 @@
 [package]
 edition = "2021"
 name = "zerofrom-derive"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Custom derive for the zerofrom crate"
 readme = "README.md"
 keywords = [
@@ -35,8 +40,13 @@ repository = "https://github.com/unicode-org/icu4x"
 independent = true
 
 [lib]
+name = "zerofrom_derive"
 path = "src/lib.rs"
 proc-macro = true
+
+[[example]]
+name = "zf_derive"
+path = "examples/zf_derive.rs"
 
 [dependencies.proc-macro2]
 version = "1.0.61"

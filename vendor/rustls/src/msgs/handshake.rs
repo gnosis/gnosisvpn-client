@@ -1,7 +1,6 @@
 use alloc::collections::BTreeSet;
 #[cfg(feature = "logging")]
 use alloc::string::String;
-use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Deref;
@@ -28,6 +27,7 @@ use crate::msgs::enums::{
     NamedGroup, PSKKeyExchangeMode, ServerNameType,
 };
 use crate::rand;
+use crate::sync::Arc;
 use crate::verify::DigitallySignedStruct;
 use crate::x509::wrap_in_sequence;
 
@@ -88,9 +88,8 @@ impl Codec<'_> for Random {
     }
 
     fn read(r: &mut Reader<'_>) -> Result<Self, InvalidMessage> {
-        let bytes = match r.take(32) {
-            Some(bytes) => bytes,
-            None => return Err(InvalidMessage::MissingData("Random")),
+        let Some(bytes) = r.take(32) else {
+            return Err(InvalidMessage::MissingData("Random"));
         };
 
         let mut opaque = [0; 32];
@@ -154,9 +153,8 @@ impl Codec<'_> for SessionId {
             return Err(InvalidMessage::TrailingData("SessionID"));
         }
 
-        let bytes = match r.take(len) {
-            Some(bytes) => bytes,
-            None => return Err(InvalidMessage::MissingData("SessionID")),
+        let Some(bytes) = r.take(len) else {
+            return Err(InvalidMessage::MissingData("SessionID"));
         };
 
         let mut out = [0u8; 32];
@@ -573,6 +571,7 @@ pub enum ClientExtension {
     CertificateCompressionAlgorithms(Vec<CertificateCompressionAlgorithm>),
     EncryptedClientHello(EncryptedClientHello),
     EncryptedClientHelloOuterExtensions(Vec<ExtensionType>),
+    AuthorityNames(Vec<DistinguishedName>),
     Unknown(UnknownExtension),
 }
 
@@ -602,6 +601,7 @@ impl ClientExtension {
             Self::EncryptedClientHelloOuterExtensions(_) => {
                 ExtensionType::EncryptedClientHelloOuterExtensions
             }
+            Self::AuthorityNames(_) => ExtensionType::CertificateAuthorities,
             Self::Unknown(ref r) => r.typ,
         }
     }
@@ -636,6 +636,7 @@ impl Codec<'_> for ClientExtension {
             Self::CertificateCompressionAlgorithms(ref r) => r.encode(nested.buf),
             Self::EncryptedClientHello(ref r) => r.encode(nested.buf),
             Self::EncryptedClientHelloOuterExtensions(ref r) => r.encode(nested.buf),
+            Self::AuthorityNames(ref r) => r.encode(nested.buf),
             Self::Unknown(ref r) => r.encode(nested.buf),
         }
     }
@@ -684,6 +685,7 @@ impl Codec<'_> for ClientExtension {
             ExtensionType::EncryptedClientHelloOuterExtensions => {
                 Self::EncryptedClientHelloOuterExtensions(Vec::read(&mut sub)?)
             }
+            ExtensionType::CertificateAuthorities => Self::AuthorityNames(Vec::read(&mut sub)?),
             _ => Self::Unknown(UnknownExtension::read(typ, &mut sub)),
         };
 
@@ -1109,7 +1111,7 @@ impl ClientHelloPayload {
     pub(crate) fn check_psk_ext_is_last(&self) -> bool {
         self.extensions
             .last()
-            .map_or(false, |ext| ext.ext_type() == ExtensionType::PreSharedKey)
+            .is_some_and(|ext| ext.ext_type() == ExtensionType::PreSharedKey)
     }
 
     pub(crate) fn psk_modes(&self) -> Option<&[PSKKeyExchangeMode]> {
@@ -1159,6 +1161,13 @@ impl ClientHelloPayload {
             has_duplicates::<_, _, u16>(algs.iter().cloned())
         } else {
             false
+        }
+    }
+
+    pub(crate) fn certificate_authorities_extension(&self) -> Option<&[DistinguishedName]> {
+        match self.find_extension(ExtensionType::CertificateAuthorities)? {
+            ClientExtension::AuthorityNames(ext) => Some(ext),
+            _ => unreachable!("extension type checked"),
         }
     }
 }
@@ -1913,9 +1922,8 @@ pub(crate) struct ServerDhParams {
 impl ServerDhParams {
     #[cfg(feature = "tls12")]
     pub(crate) fn new(kx: &dyn ActiveKeyExchange) -> Self {
-        let params = match kx.ffdhe_group() {
-            Some(params) => params,
-            None => panic!("invalid NamedGroup for DHE key exchange: {:?}", kx.group()),
+        let Some(params) = kx.ffdhe_group() else {
+            panic!("invalid NamedGroup for DHE key exchange: {:?}", kx.group());
         };
 
         Self {

@@ -1267,9 +1267,13 @@ where
 
 /// Parse number that fall within a range of values
 ///
+/// <div class="warning">
+///
 /// **NOTE:** To capture negative values, you will also need to set
 /// [`Arg::allow_negative_numbers`][crate::Arg::allow_negative_numbers] or
 /// [`Arg::allow_hyphen_values`][crate::Arg::allow_hyphen_values].
+///
+/// </div>
 ///
 /// # Example
 ///
@@ -1824,7 +1828,7 @@ impl Default for FalseyValueParser {
     }
 }
 
-/// Parse bool-like string values, everything else is `true`
+/// Parse bool-like string values
 ///
 /// See also:
 /// - [`ValueParser::bool`] for different human readable bool representations
@@ -1873,7 +1877,7 @@ impl Default for FalseyValueParser {
 pub struct BoolishValueParser {}
 
 impl BoolishValueParser {
-    /// Parse bool-like string values, everything else is an error.
+    /// Parse bool-like string values
     pub fn new() -> Self {
         Self {}
     }

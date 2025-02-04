@@ -8,15 +8,14 @@
 //! - Can be modified according to the user's needs, because some languages need a lot more information
 //! - Help thread-through the [stream][crate::stream]
 //!
-//! To abstract these needs away from the user, generally `winnow` parsers use the [`PResult`]
+//! To abstract these needs away from the user, generally `winnow` parsers use the [`ModalResult`]
 //! alias, rather than [`Result`].  [`Parser::parse`] is a top-level operation
 //! that can help convert to a `Result` for integrating with your application's error reporting.
 //!
 //! Error types include:
-//! - `()`
-//! - [`ErrorKind`]
-//! - [`InputError`] (mostly for testing)
+//! - [`EmptyError`] when the reason for failure doesn't matter
 //! - [`ContextError`]
+//! - [`InputError`] (mostly for testing)
 //! - [`TreeError`] (mostly for testing)
 //! - [Custom errors][crate::_topic::error]
 
@@ -30,20 +29,14 @@ use crate::stream::Stream;
 #[allow(unused_imports)] // Here for intra-doc links
 use crate::Parser;
 
-/// For use with [`Parser::parse_peek`] which allows the input stream to be threaded through a
-/// parser.
-///
-/// - `Ok((I, O))` is the remaining [input][crate::stream] and the parsed value
-/// - [`Err(ErrMode<E>)`][ErrMode] is the error along with how to respond to it
-///
-/// By default, the error type (`E`) is [`InputError`]
+/// By default, the error type (`E`) is [`ContextError`].
 ///
 /// When integrating into the result of the application, see
 /// - [`Parser::parse`]
-/// - [`ErrMode::into_inner`]
-pub type IResult<I, O, E = InputError<I>> = PResult<(I, O), E>;
+/// - [`ParserError::into_inner`]
+pub type Result<O, E = ContextError> = core::result::Result<O, E>;
 
-/// For use with [`Parser::parse_next`]
+/// [Modal error reporting][ErrMode] for [`Parser::parse_next`]
 ///
 /// - `Ok(O)` is the parsed value
 /// - [`Err(ErrMode<E>)`][ErrMode] is the error along with how to respond to it
@@ -52,13 +45,20 @@ pub type IResult<I, O, E = InputError<I>> = PResult<(I, O), E>;
 ///
 /// When integrating into the result of the application, see
 /// - [`Parser::parse`]
-/// - [`ErrMode::into_inner`]
-pub type PResult<O, E = ContextError> = Result<O, ErrMode<E>>;
+/// - [`ParserError::into_inner`]
+pub type ModalResult<O, E = ContextError> = Result<O, ErrMode<E>>;
+
+#[cfg(test)]
+pub(crate) type TestResult<I, O> = ModalResult<O, InputError<I>>;
 
 /// Contains information on needed data if a parser returned `Incomplete`
 ///
+/// <div class="warning">
+///
 /// **Note:** This is only possible for `Stream` that are [partial][`crate::stream::StreamIsPartial`],
 /// like [`Partial`][crate::Partial].
+///
+/// </div>
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Needed {
     /// Needs more data, but we do not know how much
@@ -162,29 +162,29 @@ impl<E> ErrMode<E> {
     where
         E: ErrorConvert<F>,
     {
-        self.map(ErrorConvert::convert)
+        ErrorConvert::convert(self)
     }
 
     /// Unwrap the mode, returning the underlying error
     ///
     /// Returns `None` for [`ErrMode::Incomplete`]
-    #[cfg_attr(debug_assertions, track_caller)]
     #[inline(always)]
-    pub fn into_inner(self) -> Option<E> {
+    pub fn into_inner(self) -> Result<E, Self> {
         match self {
-            ErrMode::Backtrack(e) | ErrMode::Cut(e) => Some(e),
-            ErrMode::Incomplete(_) => None,
+            ErrMode::Backtrack(e) | ErrMode::Cut(e) => Ok(e),
+            err @ ErrMode::Incomplete(_) => Err(err),
         }
     }
 }
 
 impl<I: Stream, E: ParserError<I>> ParserError<I> for ErrMode<E> {
+    type Inner = E;
+
     #[inline(always)]
-    fn from_error_kind(input: &I, kind: ErrorKind) -> Self {
-        ErrMode::Backtrack(E::from_error_kind(input, kind))
+    fn from_input(input: &I) -> Self {
+        ErrMode::Backtrack(E::from_input(input))
     }
 
-    #[cfg_attr(debug_assertions, track_caller)]
     #[inline(always)]
     fn assert(input: &I, message: &'static str) -> Self
     where
@@ -193,10 +193,15 @@ impl<I: Stream, E: ParserError<I>> ParserError<I> for ErrMode<E> {
         ErrMode::Cut(E::assert(input, message))
     }
 
+    #[inline(always)]
+    fn incomplete(_input: &I, needed: Needed) -> Self {
+        ErrMode::Incomplete(needed)
+    }
+
     #[inline]
-    fn append(self, input: &I, token_start: &<I as Stream>::Checkpoint, kind: ErrorKind) -> Self {
+    fn append(self, input: &I, token_start: &<I as Stream>::Checkpoint) -> Self {
         match self {
-            ErrMode::Backtrack(e) => ErrMode::Backtrack(e.append(input, token_start, kind)),
+            ErrMode::Backtrack(e) => ErrMode::Backtrack(e.append(input, token_start)),
             e => e,
         }
     }
@@ -208,6 +213,53 @@ impl<I: Stream, E: ParserError<I>> ParserError<I> for ErrMode<E> {
             (ErrMode::Cut(e), _) | (_, ErrMode::Cut(e)) => ErrMode::Cut(e),
         }
     }
+
+    #[inline(always)]
+    fn is_backtrack(&self) -> bool {
+        matches!(self, ErrMode::Backtrack(_))
+    }
+
+    /// Unwrap the mode, returning the underlying error
+    #[inline(always)]
+    fn into_inner(self) -> Result<Self::Inner, Self> {
+        match self {
+            ErrMode::Backtrack(e) | ErrMode::Cut(e) => Ok(e),
+            err @ ErrMode::Incomplete(_) => Err(err),
+        }
+    }
+
+    #[inline(always)]
+    fn is_incomplete(&self) -> bool {
+        matches!(self, ErrMode::Incomplete(_))
+    }
+
+    #[inline(always)]
+    fn needed(&self) -> Option<Needed> {
+        match self {
+            ErrMode::Incomplete(needed) => Some(*needed),
+            _ => None,
+        }
+    }
+}
+
+impl<E> ModalError for ErrMode<E> {
+    fn cut(self) -> Self {
+        self.cut()
+    }
+
+    fn backtrack(self) -> Self {
+        self.backtrack()
+    }
+}
+
+impl<E1, E2> ErrorConvert<ErrMode<E2>> for ErrMode<E1>
+where
+    E1: ErrorConvert<E2>,
+{
+    #[inline(always)]
+    fn convert(self) -> ErrMode<E2> {
+        self.map(|e| e.convert())
+    }
 }
 
 impl<I, EXT, E> FromExternalError<I, EXT> for ErrMode<E>
@@ -215,8 +267,8 @@ where
     E: FromExternalError<I, EXT>,
 {
     #[inline(always)]
-    fn from_external_error(input: &I, kind: ErrorKind, e: EXT) -> Self {
-        ErrMode::Backtrack(E::from_external_error(input, kind, e))
+    fn from_external_error(input: &I, e: EXT) -> Self {
+        ErrMode::Backtrack(E::from_external_error(input, e))
     }
 }
 
@@ -224,6 +276,22 @@ impl<I: Stream, C, E: AddContext<I, C>> AddContext<I, C> for ErrMode<E> {
     #[inline(always)]
     fn add_context(self, input: &I, token_start: &<I as Stream>::Checkpoint, context: C) -> Self {
         self.map(|err| err.add_context(input, token_start, context))
+    }
+}
+
+#[cfg(feature = "unstable-recover")]
+#[cfg(feature = "std")]
+impl<I: Stream, E1: FromRecoverableError<I, E2>, E2> FromRecoverableError<I, ErrMode<E2>>
+    for ErrMode<E1>
+{
+    #[inline]
+    fn from_recoverable_error(
+        token_start: &<I as Stream>::Checkpoint,
+        err_start: &<I as Stream>::Checkpoint,
+        input: &I,
+        e: ErrMode<E2>,
+    ) -> Self {
+        e.map(|e| E1::from_recoverable_error(token_start, err_start, input, e))
     }
 }
 
@@ -235,14 +303,10 @@ impl<T: Clone> ErrMode<InputError<T>> {
     {
         match self {
             ErrMode::Incomplete(n) => ErrMode::Incomplete(n),
-            ErrMode::Cut(InputError { input, kind }) => ErrMode::Cut(InputError {
-                input: f(input),
-                kind,
-            }),
-            ErrMode::Backtrack(InputError { input, kind }) => ErrMode::Backtrack(InputError {
-                input: f(input),
-                kind,
-            }),
+            ErrMode::Cut(InputError { input }) => ErrMode::Cut(InputError { input: f(input) }),
+            ErrMode::Backtrack(InputError { input }) => {
+                ErrMode::Backtrack(InputError { input: f(input) })
+            }
         }
     }
 }
@@ -268,11 +332,16 @@ where
 /// It provides methods to create an error from some combinators,
 /// and combine existing errors in combinators like `alt`.
 pub trait ParserError<I: Stream>: Sized {
-    /// Creates an error from the input position and an [`ErrorKind`]
-    fn from_error_kind(input: &I, kind: ErrorKind) -> Self;
+    /// Generally, `Self`
+    ///
+    /// Mostly used for [`ErrMode`]
+    type Inner;
+
+    /// Creates an error from the input position
+    fn from_input(input: &I) -> Self;
 
     /// Process a parser assertion
-    #[cfg_attr(debug_assertions, track_caller)]
+    #[inline(always)]
     fn assert(input: &I, _message: &'static str) -> Self
     where
         I: crate::lib::std::fmt::Debug,
@@ -280,14 +349,30 @@ pub trait ParserError<I: Stream>: Sized {
         #[cfg(debug_assertions)]
         panic!("assert `{_message}` failed at {input:#?}");
         #[cfg(not(debug_assertions))]
-        Self::from_error_kind(input, ErrorKind::Assert)
+        Self::from_input(input)
     }
 
-    /// Like [`ParserError::from_error_kind`] but merges it with the existing error.
+    /// There was not enough data to determine the appropriate action
+    ///
+    /// More data needs to be buffered before retrying the parse.
+    ///
+    /// This must only be set when the [`Stream`] is [partial][`crate::stream::StreamIsPartial`], like with
+    /// [`Partial`][crate::Partial]
+    ///
+    /// Convert this into an `Backtrack` with [`Parser::complete_err`]
+    #[inline(always)]
+    fn incomplete(input: &I, _needed: Needed) -> Self {
+        Self::from_input(input)
+    }
+
+    /// Like [`ParserError::from_input`] but merges it with the existing error.
     ///
     /// This is useful when backtracking through a parse tree, accumulating error context on the
     /// way.
-    fn append(self, input: &I, token_start: &<I as Stream>::Checkpoint, kind: ErrorKind) -> Self;
+    #[inline]
+    fn append(self, _input: &I, _token_start: &<I as Stream>::Checkpoint) -> Self {
+        self
+    }
 
     /// Combines errors from two different parse branches.
     ///
@@ -297,6 +382,40 @@ pub trait ParserError<I: Stream>: Sized {
     fn or(self, other: Self) -> Self {
         other
     }
+
+    /// Is backtracking and trying new parse branches allowed?
+    #[inline(always)]
+    fn is_backtrack(&self) -> bool {
+        true
+    }
+
+    /// Unwrap the mode, returning the underlying error, if present
+    fn into_inner(self) -> Result<Self::Inner, Self>;
+
+    /// Is more data [`Needed`]
+    ///
+    /// This must be the same as [`err.needed().is_some()`][ParserError::needed]
+    #[inline(always)]
+    fn is_incomplete(&self) -> bool {
+        false
+    }
+
+    /// Extract the [`Needed`] data, if present
+    ///
+    /// `Self::needed().is_some()` must be the same as
+    /// [`err.is_incomplete()`][ParserError::is_incomplete]
+    #[inline(always)]
+    fn needed(&self) -> Option<Needed> {
+        None
+    }
+}
+
+/// Manipulate the how parsers respond to this error
+pub trait ModalError {
+    /// Prevent backtracking, bubbling the error up to the top
+    fn cut(self) -> Self;
+    /// Enable backtracking support
+    fn backtrack(self) -> Self;
 }
 
 /// Used by [`Parser::context`] to add custom data to error while backtracking
@@ -335,8 +454,8 @@ pub trait FromRecoverableError<I: Stream, E> {
 ///
 /// This trait is required by the [`Parser::try_map`] combinator.
 pub trait FromExternalError<I, E> {
-    /// Like [`ParserError::from_error_kind`] but also include an external error.
-    fn from_external_error(input: &I, kind: ErrorKind, e: E) -> Self;
+    /// Like [`ParserError::from_input`] but also include an external error.
+    fn from_external_error(input: &I, e: E) -> Self;
 }
 
 /// Equivalent of `From` implementation to avoid orphan rules in bits parsers
@@ -350,21 +469,23 @@ pub trait ErrorConvert<E> {
 /// This is useful for testing of generic parsers to ensure the error happens at the right
 /// location.
 ///
+/// <div class="warning">
+///
 /// **Note:** [context][Parser::context] and inner errors (like from [`Parser::try_map`]) will be
 /// dropped.
+///
+/// </div>
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct InputError<I: Clone> {
     /// The input stream, pointing to the location where the error occurred
     pub input: I,
-    /// A rudimentary error kind
-    pub kind: ErrorKind,
 }
 
 impl<I: Clone> InputError<I> {
     /// Creates a new basic error
     #[inline]
-    pub fn new(input: I, kind: ErrorKind) -> Self {
-        Self { input, kind }
+    pub fn at(input: I) -> Self {
+        Self { input }
     }
 
     /// Translate the input type
@@ -372,13 +493,12 @@ impl<I: Clone> InputError<I> {
     pub fn map_input<I2: Clone, O: Fn(I) -> I2>(self, op: O) -> InputError<I2> {
         InputError {
             input: op(self.input),
-            kind: self.kind,
         }
     }
 }
 
 #[cfg(feature = "alloc")]
-impl<'i, I: ToOwned> InputError<&'i I>
+impl<I: ToOwned> InputError<&I>
 where
     <I as ToOwned>::Owned: Clone,
 {
@@ -389,22 +509,18 @@ where
 }
 
 impl<I: Stream + Clone> ParserError<I> for InputError<I> {
+    type Inner = Self;
+
     #[inline]
-    fn from_error_kind(input: &I, kind: ErrorKind) -> Self {
+    fn from_input(input: &I) -> Self {
         Self {
             input: input.clone(),
-            kind,
         }
     }
 
-    #[inline]
-    fn append(
-        self,
-        _input: &I,
-        _token_start: &<I as Stream>::Checkpoint,
-        _kind: ErrorKind,
-    ) -> Self {
-        self
+    #[inline(always)]
+    fn into_inner(self) -> Result<Self::Inner, Self> {
+        Ok(self)
     }
 }
 
@@ -427,10 +543,9 @@ impl<I: Clone + Stream> FromRecoverableError<I, Self> for InputError<I> {
 impl<I: Clone, E> FromExternalError<I, E> for InputError<I> {
     /// Create a new error from an input position and an external error
     #[inline]
-    fn from_external_error(input: &I, kind: ErrorKind, _e: E) -> Self {
+    fn from_external_error(input: &I, _e: E) -> Self {
         Self {
             input: input.clone(),
-            kind,
         }
     }
 }
@@ -438,32 +553,21 @@ impl<I: Clone, E> FromExternalError<I, E> for InputError<I> {
 impl<I: Clone> ErrorConvert<InputError<(I, usize)>> for InputError<I> {
     #[inline]
     fn convert(self) -> InputError<(I, usize)> {
-        InputError {
-            input: (self.input, 0),
-            kind: self.kind,
-        }
+        self.map_input(|i| (i, 0))
     }
 }
 
 impl<I: Clone> ErrorConvert<InputError<I>> for InputError<(I, usize)> {
     #[inline]
     fn convert(self) -> InputError<I> {
-        InputError {
-            input: self.input.0,
-            kind: self.kind,
-        }
+        self.map_input(|(i, _o)| i)
     }
 }
 
 /// The Display implementation allows the `std::error::Error` implementation
 impl<I: Clone + fmt::Display> fmt::Display for InputError<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} error starting at: {}",
-            self.kind.description(),
-            self.input
-        )
+        write!(f, "failed to parse starting at: {}", self.input)
     }
 }
 
@@ -473,17 +577,69 @@ impl<I: Clone + fmt::Debug + fmt::Display + Sync + Send + 'static> std::error::E
 {
 }
 
+/// Track an error occurred without any other [`StrContext`]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct EmptyError;
+
+impl<I: Stream> ParserError<I> for EmptyError {
+    type Inner = Self;
+
+    #[inline(always)]
+    fn from_input(_: &I) -> Self {
+        Self
+    }
+
+    #[inline(always)]
+    fn into_inner(self) -> Result<Self::Inner, Self> {
+        Ok(self)
+    }
+}
+
+impl<I: Stream, C> AddContext<I, C> for EmptyError {}
+
+#[cfg(feature = "unstable-recover")]
+#[cfg(feature = "std")]
+impl<I: Stream> FromRecoverableError<I, Self> for EmptyError {
+    #[inline(always)]
+    fn from_recoverable_error(
+        _token_start: &<I as Stream>::Checkpoint,
+        _err_start: &<I as Stream>::Checkpoint,
+        _input: &I,
+        e: Self,
+    ) -> Self {
+        e
+    }
+}
+
+impl<I, E> FromExternalError<I, E> for EmptyError {
+    #[inline(always)]
+    fn from_external_error(_input: &I, _e: E) -> Self {
+        Self
+    }
+}
+
+impl ErrorConvert<EmptyError> for EmptyError {
+    #[inline(always)]
+    fn convert(self) -> EmptyError {
+        self
+    }
+}
+
+impl crate::lib::std::fmt::Display for EmptyError {
+    fn fmt(&self, f: &mut crate::lib::std::fmt::Formatter<'_>) -> crate::lib::std::fmt::Result {
+        "failed to parse".fmt(f)
+    }
+}
+
 impl<I: Stream> ParserError<I> for () {
-    #[inline]
-    fn from_error_kind(_: &I, _: ErrorKind) -> Self {}
+    type Inner = Self;
 
     #[inline]
-    fn append(
-        self,
-        _input: &I,
-        _token_start: &<I as Stream>::Checkpoint,
-        _kind: ErrorKind,
-    ) -> Self {
+    fn from_input(_: &I) -> Self {}
+
+    #[inline(always)]
+    fn into_inner(self) -> Result<Self::Inner, Self> {
+        Ok(self)
     }
 }
 
@@ -504,7 +660,7 @@ impl<I: Stream> FromRecoverableError<I, Self> for () {
 
 impl<I, E> FromExternalError<I, E> for () {
     #[inline]
-    fn from_external_error(_input: &I, _kind: ErrorKind, _e: E) -> Self {}
+    fn from_external_error(_input: &I, _e: E) -> Self {}
 }
 
 impl ErrorConvert<()> for () {
@@ -567,24 +723,16 @@ impl<C> Default for ContextError<C> {
 }
 
 impl<I: Stream, C> ParserError<I> for ContextError<C> {
+    type Inner = Self;
+
     #[inline]
-    fn from_error_kind(_input: &I, _kind: ErrorKind) -> Self {
+    fn from_input(_input: &I) -> Self {
         Self::new()
     }
 
-    #[inline]
-    fn append(
-        self,
-        _input: &I,
-        _token_start: &<I as Stream>::Checkpoint,
-        _kind: ErrorKind,
-    ) -> Self {
-        self
-    }
-
-    #[inline]
-    fn or(self, other: Self) -> Self {
-        other
+    #[inline(always)]
+    fn into_inner(self) -> Result<Self::Inner, Self> {
+        Ok(self)
     }
 }
 
@@ -621,7 +769,7 @@ impl<C, I, E: std::error::Error + Send + Sync + 'static> FromExternalError<I, E>
     for ContextError<C>
 {
     #[inline]
-    fn from_external_error(_input: &I, _kind: ErrorKind, e: E) -> Self {
+    fn from_external_error(_input: &I, e: E) -> Self {
         let mut err = Self::new();
         {
             err.cause = Some(Box::new(e));
@@ -634,7 +782,7 @@ impl<C, I, E: std::error::Error + Send + Sync + 'static> FromExternalError<I, E>
 #[cfg(not(feature = "std"))]
 impl<C, I, E: Send + Sync + 'static> FromExternalError<I, E> for ContextError<C> {
     #[inline]
-    fn from_external_error(_input: &I, _kind: ErrorKind, _e: E) -> Self {
+    fn from_external_error(_input: &I, _e: E) -> Self {
         let err = Self::new();
         err
     }
@@ -815,8 +963,6 @@ pub enum TreeErrorFrame<I, C = StrContext> {
 pub struct TreeErrorBase<I> {
     /// Parsed input, at the location where the error occurred
     pub input: I,
-    /// Debug context
-    pub kind: ErrorKind,
     /// See [`FromExternalError::from_external_error`]
     pub cause: Option<Box<dyn std::error::Error + Send + Sync + 'static>>,
 }
@@ -832,11 +978,7 @@ pub struct TreeErrorContext<I, C = StrContext> {
 }
 
 #[cfg(feature = "std")]
-impl<'i, I: ToOwned, C> TreeError<&'i I, C>
-where
-    &'i I: Stream + Clone,
-    <I as ToOwned>::Owned: Clone,
-{
+impl<I: ToOwned, C> TreeError<&I, C> {
     /// Obtaining ownership
     pub fn into_owned(self) -> TreeError<<I as ToOwned>::Owned, C> {
         self.map_input(ToOwned::to_owned)
@@ -844,16 +986,12 @@ where
 }
 
 #[cfg(feature = "std")]
-impl<I, C> TreeError<I, C>
-where
-    I: Stream + Clone,
-{
+impl<I, C> TreeError<I, C> {
     /// Translate the input type
-    pub fn map_input<I2: Clone, O: Clone + Fn(I) -> I2>(self, op: O) -> TreeError<I2, C> {
+    pub fn map_input<I2, O: Clone + Fn(I) -> I2>(self, op: O) -> TreeError<I2, C> {
         match self {
             TreeError::Base(base) => TreeError::Base(TreeErrorBase {
                 input: op(base.input),
-                kind: base.kind,
                 cause: base.cause,
             }),
             TreeError::Stack { base, stack } => {
@@ -863,7 +1001,6 @@ where
                     .map(|frame| match frame {
                         TreeErrorFrame::Kind(kind) => TreeErrorFrame::Kind(TreeErrorBase {
                             input: op(kind.input),
-                            kind: kind.kind,
                             cause: kind.cause,
                         }),
                         TreeErrorFrame::Context(context) => {
@@ -901,22 +1038,19 @@ impl<I, C> ParserError<I> for TreeError<I, C>
 where
     I: Stream + Clone,
 {
-    fn from_error_kind(input: &I, kind: ErrorKind) -> Self {
+    type Inner = Self;
+
+    fn from_input(input: &I) -> Self {
         TreeError::Base(TreeErrorBase {
             input: input.clone(),
-            kind,
             cause: None,
         })
     }
 
-    fn append(self, input: &I, token_start: &<I as Stream>::Checkpoint, kind: ErrorKind) -> Self {
+    fn append(self, input: &I, token_start: &<I as Stream>::Checkpoint) -> Self {
         let mut input = input.clone();
         input.reset(token_start);
-        let frame = TreeErrorFrame::Kind(TreeErrorBase {
-            input,
-            kind,
-            cause: None,
-        });
+        let frame = TreeErrorFrame::Kind(TreeErrorBase { input, cause: None });
         self.append_frame(frame)
     }
 
@@ -926,7 +1060,7 @@ where
                 // Just in case an implementation does a divide-and-conquer algorithm
                 //
                 // To prevent mixing `alt`s at different levels, parsers should
-                // `alt_err.append(input, ErrorKind::Alt)`.
+                // `alt_err.append(input)`.
                 first.extend(second);
                 TreeError::Alt(first)
             }
@@ -936,6 +1070,11 @@ where
             }
             (first, second) => TreeError::Alt(vec![first, second]),
         }
+    }
+
+    #[inline(always)]
+    fn into_inner(self) -> Result<Self::Inner, Self> {
+        Ok(self)
     }
 }
 
@@ -954,7 +1093,7 @@ where
 
 #[cfg(feature = "std")]
 #[cfg(feature = "unstable-recover")]
-impl<I: Stream + Clone, C> FromRecoverableError<I, Self> for TreeError<I, C> {
+impl<I: Stream, C> FromRecoverableError<I, Self> for TreeError<I, C> {
     #[inline]
     fn from_recoverable_error(
         _token_start: &<I as Stream>::Checkpoint,
@@ -969,21 +1108,36 @@ impl<I: Stream + Clone, C> FromRecoverableError<I, Self> for TreeError<I, C> {
 #[cfg(feature = "std")]
 impl<I, C, E: std::error::Error + Send + Sync + 'static> FromExternalError<I, E> for TreeError<I, C>
 where
-    I: Stream + Clone,
+    I: Clone,
 {
-    fn from_external_error(input: &I, kind: ErrorKind, e: E) -> Self {
+    fn from_external_error(input: &I, e: E) -> Self {
         TreeError::Base(TreeErrorBase {
             input: input.clone(),
-            kind,
             cause: Some(Box::new(e)),
         })
     }
 }
 
 #[cfg(feature = "std")]
+impl<I, C> ErrorConvert<TreeError<(I, usize), C>> for TreeError<I, C> {
+    #[inline]
+    fn convert(self) -> TreeError<(I, usize), C> {
+        self.map_input(|i| (i, 0))
+    }
+}
+
+#[cfg(feature = "std")]
+impl<I, C> ErrorConvert<TreeError<I, C>> for TreeError<(I, usize), C> {
+    #[inline]
+    fn convert(self) -> TreeError<I, C> {
+        self.map_input(|(i, _o)| i)
+    }
+}
+
+#[cfg(feature = "std")]
 impl<I, C> TreeError<I, C>
 where
-    I: Stream + Clone + crate::lib::std::fmt::Display,
+    I: crate::lib::std::fmt::Display,
     C: fmt::Display,
 {
     fn write(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
@@ -1018,13 +1172,10 @@ where
 }
 
 #[cfg(feature = "std")]
-impl<I: Stream + Clone + fmt::Display> fmt::Display for TreeErrorBase<I> {
+impl<I: fmt::Display> fmt::Display for TreeErrorBase<I> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(cause) = self.cause.as_ref() {
             write!(f, "caused by {cause}")?;
-        } else {
-            let kind = self.kind.description();
-            write!(f, "in {kind}")?;
         }
         let input = abbreviate(self.input.to_string());
         write!(f, " at '{input}'")?;
@@ -1033,7 +1184,7 @@ impl<I: Stream + Clone + fmt::Display> fmt::Display for TreeErrorBase<I> {
 }
 
 #[cfg(feature = "std")]
-impl<I: Stream + Clone + fmt::Display, C: fmt::Display> fmt::Display for TreeErrorContext<I, C> {
+impl<I: fmt::Display, C: fmt::Display> fmt::Display for TreeErrorContext<I, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let context = &self.context;
         let input = abbreviate(self.input.to_string());
@@ -1043,10 +1194,8 @@ impl<I: Stream + Clone + fmt::Display, C: fmt::Display> fmt::Display for TreeErr
 }
 
 #[cfg(feature = "std")]
-impl<
-        I: Stream + Clone + fmt::Debug + fmt::Display + Sync + Send + 'static,
-        C: fmt::Display + fmt::Debug,
-    > std::error::Error for TreeError<I, C>
+impl<I: fmt::Debug + fmt::Display + Sync + Send + 'static, C: fmt::Display + fmt::Debug>
+    std::error::Error for TreeError<I, C>
 {
 }
 
@@ -1074,86 +1223,11 @@ fn abbreviate(input: String) -> String {
 }
 
 #[cfg(feature = "std")]
-impl<I: Stream + Clone + fmt::Display, C: fmt::Display> fmt::Display for TreeError<I, C> {
+impl<I: fmt::Display, C: fmt::Display> fmt::Display for TreeError<I, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.write(f, 0)
     }
 }
-
-/// Provide some minor debug context for errors
-#[rustfmt::skip]
-#[derive(Debug,PartialEq,Eq,Hash,Clone,Copy)]
-#[allow(missing_docs)]
-pub enum ErrorKind {
-  Assert,
-  Token,
-  Tag,
-  Alt,
-  Many,
-  Eof,
-  Slice,
-  Complete,
-  Not,
-  Verify,
-  Fail,
-}
-
-impl ErrorKind {
-    #[rustfmt::skip]
-    /// Converts an `ErrorKind` to a text description
-    pub fn description(&self) -> &str {
-    match *self {
-      ErrorKind::Assert                    => "assert",
-      ErrorKind::Token                     => "token",
-      ErrorKind::Tag                       => "tag",
-      ErrorKind::Alt                       => "alternative",
-      ErrorKind::Many                      => "many",
-      ErrorKind::Eof                       => "end of file",
-      ErrorKind::Slice                     => "slice",
-      ErrorKind::Complete                  => "complete",
-      ErrorKind::Not                       => "negation",
-      ErrorKind::Verify                    => "predicate verification",
-      ErrorKind::Fail                      => "fail",
-    }
-  }
-}
-
-impl<I: Stream> ParserError<I> for ErrorKind {
-    #[inline]
-    fn from_error_kind(_input: &I, kind: ErrorKind) -> Self {
-        kind
-    }
-
-    #[inline]
-    fn append(
-        self,
-        _input: &I,
-        _token_start: &<I as Stream>::Checkpoint,
-        _kind: ErrorKind,
-    ) -> Self {
-        self
-    }
-}
-
-impl<I: Stream, C> AddContext<I, C> for ErrorKind {}
-
-impl<I, E> FromExternalError<I, E> for ErrorKind {
-    /// Create a new error from an input position and an external error
-    #[inline]
-    fn from_external_error(_input: &I, kind: ErrorKind, _e: E) -> Self {
-        kind
-    }
-}
-
-/// The Display implementation allows the `std::error::Error` implementation
-impl fmt::Display for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "error {self:?}")
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ErrorKind {}
 
 /// See [`Parser::parse`]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1184,8 +1258,12 @@ impl<I, E> ParseError<I, E> {
 
     /// The location in [`ParseError::input`] where parsing failed
     ///
+    /// <div class="warning">
+    ///
     /// **Note:** This is an offset, not an index, and may point to the end of input
     /// (`input.len()`) on eof errors.
+    ///
+    /// </div>
     #[inline]
     pub fn offset(&self) -> usize {
         self.offset
@@ -1312,12 +1390,12 @@ mod test_parse_error {
         let start = input.checkpoint();
         let _ = input.next_token().unwrap();
         let _ = input.next_token().unwrap();
-        let inner = InputError::new(input, ErrorKind::Slice);
+        let inner = InputError::at(input);
         let error = ParseError::new(input, start, inner);
         let expected = "\
 0xZ123
   ^
-slice error starting at: Z123";
+failed to parse starting at: Z123";
         assert_eq!(error.to_string(), expected);
     }
 }
@@ -1391,20 +1469,3 @@ mod test_translate_position {
         assert_eq!(position, (1, 2));
     }
 }
-
-/// Creates a parse error from a [`ErrorKind`]
-/// and the position in the input
-#[cfg(test)]
-macro_rules! error_position(
-  ($input:expr, $code:expr) => ({
-    $crate::error::ParserError::from_error_kind($input, $code)
-  });
-);
-
-#[cfg(test)]
-macro_rules! error_node_position(
-  ($input:expr, $code:expr, $next:expr) => ({
-    let start = $input.checkpoint();
-    $crate::error::ParserError::append($next, $input, &start, $code)
-  });
-);

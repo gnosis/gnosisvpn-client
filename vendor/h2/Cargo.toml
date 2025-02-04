@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.63"
 name = "h2"
-version = "0.4.6"
+version = "0.4.7"
 authors = [
     "Carl Lerche <me@carllerche.com>",
     "Sean McArthur <sean@seanmonstar.com>",
@@ -23,6 +23,7 @@ exclude = [
     "fixtures/**",
     "ci/**",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

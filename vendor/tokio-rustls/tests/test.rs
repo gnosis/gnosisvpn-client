@@ -1,4 +1,4 @@
-use std::io::{BufReader, Cursor, ErrorKind};
+use std::io::{Cursor, ErrorKind};
 use std::net::SocketAddr;
 use std::sync::mpsc::channel;
 use std::sync::Arc;
@@ -7,32 +7,17 @@ use std::{io, thread};
 
 use futures_util::future::TryFutureExt;
 use lazy_static::lazy_static;
+use rustls::pki_types::ServerName;
 use rustls::ClientConfig;
-use rustls_pemfile::{certs, rsa_private_keys};
 use tokio::io::{copy, split, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::oneshot;
 use tokio::{runtime, time};
 use tokio_rustls::{LazyConfigAcceptor, TlsAcceptor, TlsConnector};
 
-const CERT: &str = include_str!("end.cert");
-const CHAIN: &[u8] = include_bytes!("end.chain");
-const RSA: &str = include_str!("end.rsa");
-
 lazy_static! {
-    static ref TEST_SERVER: (SocketAddr, &'static str, &'static [u8]) = {
-        let cert = certs(&mut BufReader::new(Cursor::new(CERT)))
-            .map(|result| result.unwrap())
-            .collect();
-        let key = rsa_private_keys(&mut BufReader::new(Cursor::new(RSA)))
-            .next()
-            .unwrap()
-            .unwrap();
-
-        let config = rustls::ServerConfig::builder()
-            .with_no_client_auth()
-            .with_single_cert(cert, key.into())
-            .unwrap();
+    static ref TEST_SERVER: SocketAddr = {
+        let (config, _) = utils::make_configs();
         let acceptor = TlsAcceptor::from(Arc::new(config));
 
         let (send, recv) = channel();
@@ -73,19 +58,14 @@ lazy_static! {
             runtime.block_on(done);
         });
 
-        let addr = recv.recv().unwrap();
-        (addr, "foobar.com", CHAIN)
+        recv.recv().unwrap()
     };
-}
-
-fn start_server() -> &'static (SocketAddr, &'static str, &'static [u8]) {
-    &TEST_SERVER
 }
 
 async fn start_client(addr: SocketAddr, domain: &str, config: Arc<ClientConfig>) -> io::Result<()> {
     const FILE: &[u8] = include_bytes!("../README.md");
 
-    let domain = pki_types::ServerName::try_from(domain).unwrap().to_owned();
+    let domain = ServerName::try_from(domain).unwrap().to_owned();
     let config = TlsConnector::from(config);
     let mut buf = vec![0; FILE.len()];
 
@@ -102,45 +82,27 @@ async fn start_client(addr: SocketAddr, domain: &str, config: Arc<ClientConfig>)
 
 #[tokio::test]
 async fn pass() -> io::Result<()> {
-    let (addr, domain, chain) = start_server();
-
     // TODO: not sure how to resolve this right now but since
     // TcpStream::bind now returns a future it creates a race
     // condition until its ready sometimes.
     use std::time::*;
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    let mut root_store = rustls::RootCertStore::empty();
-    for cert in certs(&mut std::io::Cursor::new(*chain)) {
-        root_store.add(cert.unwrap()).unwrap();
-    }
-
-    let config = rustls::ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth();
+    let (_, config) = utils::make_configs();
     let config = Arc::new(config);
 
-    start_client(*addr, domain, config).await?;
+    start_client(*TEST_SERVER, utils::TEST_SERVER_DOMAIN, config).await?;
 
     Ok(())
 }
 
 #[tokio::test]
 async fn fail() -> io::Result<()> {
-    let (addr, domain, chain) = start_server();
-
-    let mut root_store = rustls::RootCertStore::empty();
-    for cert in certs(&mut std::io::Cursor::new(*chain)) {
-        root_store.add(cert.unwrap()).unwrap();
-    }
-
-    let config = rustls::ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth();
+    let (_, config) = utils::make_configs();
     let config = Arc::new(config);
 
-    assert_ne!(domain, &"google.com");
-    let ret = start_client(*addr, "google.com", config).await;
+    assert_ne!(utils::TEST_SERVER_DOMAIN, "google.com");
+    let ret = start_client(*TEST_SERVER, "google.com", config).await;
     assert!(ret.is_err());
 
     Ok(())
@@ -151,11 +113,9 @@ async fn test_lazy_config_acceptor() -> io::Result<()> {
     let (sconfig, cconfig) = utils::make_configs();
 
     let (cstream, sstream) = tokio::io::duplex(1200);
-    let domain = pki_types::ServerName::try_from("foobar.com")
-        .unwrap()
-        .to_owned();
+    let domain = ServerName::try_from("foobar.com").unwrap().to_owned();
     tokio::spawn(async move {
-        let connector = crate::TlsConnector::from(cconfig);
+        let connector = crate::TlsConnector::from(Arc::new(cconfig));
         let mut client = connector.connect(domain, cstream).await.unwrap();
         client.write_all(b"hello, world!").await.unwrap();
 
@@ -175,7 +135,7 @@ async fn test_lazy_config_acceptor() -> io::Result<()> {
         Vec::<&[u8]>::new()
     );
 
-    let mut stream = start.into_stream(sconfig).await.unwrap();
+    let mut stream = start.into_stream(Arc::new(sconfig)).await.unwrap();
     let mut buf = [0; 13];
     stream.read_exact(&mut buf).await.unwrap();
     assert_eq!(&buf[..], b"hello, world!");
@@ -279,7 +239,10 @@ async fn acceptor_alert() {
         panic!("timeout");
     };
 
-    let err = start_handshake.into_stream(sconfig).await.unwrap_err();
+    let err = start_handshake
+        .into_stream(Arc::new(sconfig))
+        .await
+        .unwrap_err();
 
     assert_eq!(err.to_string(), "peer is incompatible: Tls12NotOffered");
 

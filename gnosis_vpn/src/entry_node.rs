@@ -122,6 +122,8 @@ impl EntryNode {
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
+            tracing::debug!(?headers, ?url, "get addresses");
+
             let fetch_res = client
                 .get(url)
                 .timeout(std::time::Duration::from_secs(30))
@@ -169,6 +171,8 @@ impl EntryNode {
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
+            tracing::debug!(?headers, ?url, "list sessions");
+
             let fetch_res = client
                 .get(url)
                 .timeout(std::time::Duration::from_secs(30))

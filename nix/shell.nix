@@ -30,6 +30,9 @@ craneLib.devShell {
     which
     yq-go
 
+    # development helper
+    cargo-outdated
+
     # github integration
     gh
 

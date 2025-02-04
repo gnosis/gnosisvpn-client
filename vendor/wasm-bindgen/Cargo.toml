@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.57"
 name = "wasm-bindgen"
-version = "0.2.95"
+version = "0.2.100"
 authors = ["The wasm-bindgen Developers"]
 build = "build.rs"
 include = [
@@ -21,6 +21,7 @@ include = [
     "/LICENSE-*",
     "/src",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -48,6 +49,11 @@ version = "1.0.0"
 
 [dependencies.once_cell]
 version = "1.12"
+default-features = false
+
+[dependencies.rustversion]
+version = "1.0"
+optional = true
 
 [dependencies.serde]
 version = "1.0"
@@ -58,29 +64,41 @@ version = "1.0"
 optional = true
 
 [dependencies.wasm-bindgen-macro]
-version = "=0.2.95"
+version = "=0.2.100"
 
-[dev-dependencies]
+[dev-dependencies.once_cell]
+version = "1"
 
 [features]
 default = [
-    "spans",
     "std",
+    "msrv",
 ]
 enable-interning = ["std"]
 gg-alloc = []
+msrv = ["rustversion"]
 serde-serialize = [
     "serde",
     "serde_json",
     "std",
 ]
-spans = ["wasm-bindgen-macro/spans"]
+spans = []
 std = []
 strict-macro = ["wasm-bindgen-macro/strict-macro"]
 xxx_debug_only_print_generated_code = ["wasm-bindgen-macro/xxx_debug_only_print_generated_code"]
 
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies.paste]
+version = "1"
+
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.serde_derive]
 version = "1.0"
+
+[lints.clippy]
+large_enum_variant = "allow"
+new_without_default = "allow"
+overly_complex_bool_expr = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

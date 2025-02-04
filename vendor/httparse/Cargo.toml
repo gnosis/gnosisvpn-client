@@ -12,9 +12,10 @@
 [package]
 edition = "2018"
 name = "httparse"
-version = "1.9.5"
+version = "1.10.0"
 authors = ["Sean McArthur <sean@seanmonstar.com>"]
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -36,10 +37,9 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/seanmonstar/httparse"
 
-[profile.bench]
-opt-level = 3
-lto = true
-codegen-units = 1
+[features]
+default = ["std"]
+std = []
 
 [lib]
 name = "httparse"
@@ -58,9 +58,8 @@ harness = false
 [dev-dependencies.criterion]
 version = "0.3.5"
 
-[features]
-default = ["std"]
-std = []
+[dev-dependencies.rand]
+version = "0.8.5"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"
@@ -71,3 +70,8 @@ check-cfg = [
     "cfg(httparse_simd_target_feature_sse42)",
     "cfg(httparse_simd_neon_intrinsics)",
 ]
+
+[profile.bench]
+opt-level = 3
+lto = true
+codegen-units = 1

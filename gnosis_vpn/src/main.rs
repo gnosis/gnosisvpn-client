@@ -30,8 +30,11 @@ struct Cli {}
 #[tracing::instrument(level = Level::DEBUG)]
 fn ctrlc_channel() -> Result<crossbeam_channel::Receiver<()>, exitcode::ExitCode> {
     let (sender, receiver) = crossbeam_channel::bounded(100);
-    match ctrlc::set_handler(move || {
-        let _ = sender.send(());
+    match ctrlc::set_handler(move || match sender.send(()) {
+        Ok(_) => (),
+        Err(e) => {
+            tracing::error!(error = ?e, "sending incoming data");
+        }
     }) {
         Ok(_) => Ok(receiver),
         Err(CtrlcError::NoSuchSignal(signal_type)) => {
@@ -283,6 +286,24 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
         Err(exit) => return exit,
     };
 
+    let exit_code = loop_daemon(&ctrlc_receiver, &config_receiver, &socket_receiver);
+
+    // cleanup
+    match fs::remove_file(socket_path) {
+        Ok(_) => (),
+        Err(e) => {
+            tracing::warn!(error = %e, "failed removing socket");
+        }
+    }
+
+    exit_code
+}
+
+fn loop_daemon(
+    ctrlc_receiver: &crossbeam_channel::Receiver<()>,
+    config_receiver: &crossbeam_channel::Receiver<notify::Result<notify::Event>>,
+    socket_receiver: &crossbeam_channel::Receiver<net::UnixStream>,
+) -> exitcode::ExitCode {
     let (sender, core_receiver) = crossbeam_channel::unbounded::<event::Event>();
     let mut state = core::Core::init(sender);
 
@@ -291,6 +312,7 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     let mut ctrc_already_triggered = false;
 
     tracing::info!("started in listening mode");
+    // run continously until interrupted via signal
     loop {
         crossbeam_channel::select! {
             recv(ctrlc_receiver) -> _ => {
@@ -302,8 +324,8 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
                     tracing::info!("initiate shutdown");
                     match state.shutdown() {
                         Ok(r) => shutdown_receiver = r,
-                        Err(err) => {
-                            tracing::error!(?err, "failed to initiate shutdown");
+                        Err(e) => {
+                            tracing::error!(error = ?e, "failed to initiate shutdown");
                             return exitcode::OSERR;
                         }
                     }
@@ -332,13 +354,11 @@ fn main() {
     let _args = Cli::parse();
     let socket_path = socket::path();
 
-    // run continously until ctrl-c
     let exit = daemon(&socket_path);
 
-    // cleanup
-    match fs::remove_file(socket_path) {
-        Ok(_) => tracing::info!("stopped gracefully"),
-        Err(e) => tracing::warn!(error = %e, "failed removing socket"),
+    if exit != exitcode::OK {
+        tracing::warn!("abnormal exit");
     }
+
     process::exit(exit)
 }

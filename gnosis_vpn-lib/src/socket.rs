@@ -19,8 +19,8 @@ pub fn path() -> PathBuf {
             PathBuf::from(path)
         }
         Err(std::env::VarError::NotPresent) => PathBuf::from(DEFAULT_PATH),
-        Err(err) => {
-            tracing::warn!(?err, "using default socket path");
+        Err(e) => {
+            tracing::warn!(warn = ?e, "using default socket path");
             PathBuf::from(DEFAULT_PATH)
         }
     }

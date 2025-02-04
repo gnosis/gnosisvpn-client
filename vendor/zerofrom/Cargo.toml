@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.71.1"
 name = "zerofrom"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
+build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,6 +26,10 @@ include = [
     "LICENSE",
     "README.md",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "ZeroFrom trait for constructing"
 readme = "README.md"
 keywords = [
@@ -46,6 +51,10 @@ all-features = true
 
 [package.metadata.workspaces]
 independent = true
+
+[lib]
+name = "zerofrom"
+path = "src/lib.rs"
 
 [dependencies.zerofrom-derive]
 version = "0.1.3"

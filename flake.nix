@@ -15,7 +15,6 @@
 
     crane.inputs.nixpkgs.follows = "nixpkgs";
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
-    pre-commit.inputs.nixpkgs-stable.follows = "nixpkgs";
     pre-commit.inputs.nixpkgs.follows = "nixpkgs";
     rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
@@ -35,6 +34,11 @@
           overlays = [ (import rust-overlay) ];
           pkgs = import nixpkgs {
             inherit localSystem overlays;
+            packageOverrides = pkgs: {
+              openssl = pkgs.openssl.override {
+                static = true;
+              };
+            };
           };
           rustNightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
           craneLibNightly = (crane.mkLib pkgs).overrideToolchain rustNightly;
@@ -70,35 +74,40 @@
             useRustNightly = true;
           };
 
-          rust-builder-x86_64-linux = import ./nix/rust-builder.nix {
-            inherit nixpkgs rust-overlay crane localSystem;
-            crossSystem = pkgs.lib.systems.examples.gnu64;
-            isCross = true;
-          };
+          rust-builder-x86_64-linux = import ./nix/rust-builder.nix
+            { inherit nixpkgs rust-overlay crane localSystem; };
 
-          rust-builder-x86_64-darwin = import ./nix/rust-builder.nix {
-            inherit nixpkgs rust-overlay crane localSystem;
-            crossSystem = pkgs.lib.systems.examples.x86_64-darwin;
-            isCross = true;
-          };
+          rust-builder-x86_64-darwin = import
+            ./nix/rust-builder.nix
+            {
+              inherit nixpkgs rust-overlay crane localSystem;
+              crossSystem = pkgs.lib.systems.examples.x86_64-darwin;
+              isCross = true;
+            };
 
-          rust-builder-aarch64-linux = import ./nix/rust-builder.nix {
-            inherit nixpkgs rust-overlay crane localSystem;
-            crossSystem = pkgs.lib.systems.examples.aarch64-multiplatform;
-            isCross = true;
-          };
+          rust-builder-aarch64-linux = import
+            ./nix/rust-builder.nix
+            {
+              inherit nixpkgs rust-overlay crane localSystem;
+              crossSystem = pkgs.lib.systems.examples.aarch64-multiplatform;
+              isCross = true;
+            };
 
-          rust-builder-aarch64-darwin = import ./nix/rust-builder.nix {
-            inherit nixpkgs rust-overlay crane localSystem;
-            crossSystem = pkgs.lib.systems.examples.aarch64-darwin;
-            isCross = true;
-          };
+          rust-builder-aarch64-darwin = import
+            ./nix/rust-builder.nix
+            {
+              inherit nixpkgs rust-overlay crane localSystem;
+              crossSystem = pkgs.lib.systems.examples.aarch64-darwin;
+              isCross = true;
+            };
 
-          rust-builder-armv7l-linux = import ./nix/rust-builder.nix {
-            inherit nixpkgs rust-overlay crane localSystem;
-            crossSystem = pkgs.lib.systems.examples.armv7l-hf-multiplatform;
-            isCross = true;
-          };
+          rust-builder-armv7l-linux = import
+            ./nix/rust-builder.nix
+            {
+              inherit nixpkgs rust-overlay crane localSystem;
+              crossSystem = pkgs.lib.systems.examples.armv7l-hf-multiplatform;
+              isCross = true;
+            };
 
           gnosisvpnBuildArgs = {
             inherit src depsSrc rev;
@@ -106,35 +115,57 @@
             cargoToml = ./Cargo.toml;
           };
 
-          gnosisvpn = rust-builder-local.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpn = rust-builder-local.callPackage
+            ./nix/rust-package.nix
+            gnosisvpnBuildArgs;
 
-          gnosisvpn-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
-          gnosisvpn-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
-          gnosisvpn-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpn-x86_64-linux = rust-builder-x86_64-linux.callPackage
+            ./nix/rust-package.nix
+            gnosisvpnBuildArgs;
+
+          gnosisvpn-aarch64-linux = rust-builder-aarch64-linux.callPackage
+            ./nix/rust-package.nix
+            gnosisvpnBuildArgs;
+          gnosisvpn-armv7l-linux = rust-builder-armv7l-linux.callPackage
+            ./nix/rust-package.nix
+            gnosisvpnBuildArgs;
           # CAVEAT: must be built from a darwin system
-          gnosisvpn-x86_64-darwin = rust-builder-x86_64-darwin.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpn-x86_64-darwin = rust-builder-x86_64-darwin.callPackage
+            ./nix/rust-package.nix
+            gnosisvpnBuildArgs;
           # CAVEAT: must be built from a darwin system
-          gnosisvpn-aarch64-darwin = rust-builder-aarch64-darwin.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpn-aarch64-darwin = rust-builder-aarch64-darwin.callPackage
+            ./nix/rust-package.nix
+            gnosisvpnBuildArgs;
 
-          gnosisvpn-clippy = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runClippy = true; });
-          gnosisvpn-test = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runTests = true; });
-          gnosisvpn-debug = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { CARGO_PROFILE = "dev"; });
+          gnosisvpn-clippy = rust-builder-local.callPackage
+            ./nix/rust-package.nix
+            (gnosisvpnBuildArgs // { runClippy = true; });
+          gnosisvpn-test = rust-builder-local.callPackage
+            ./nix/rust-package.nix
+            (gnosisvpnBuildArgs // { runTests = true; });
+          gnosisvpn-debug = rust-builder-local.callPackage
+            ./nix/rust-package.nix
+            (gnosisvpnBuildArgs // { CARGO_PROFILE = "dev"; });
 
-          defaultDevShell = import ./nix/shell.nix { inherit pkgs config crane; };
+          defaultDevShell = import
+            ./nix/shell.nix
+            { inherit pkgs config crane; };
 
-          run-check = flake-utils.lib.mkApp {
-            drv = pkgs.writeShellScriptBin "run-check" ''
-              set -e
-              check=$1
-              if [ -z "$check" ]; then
-                nix flake show --json 2>/dev/null | \
-                  jq -r '.checks."${system}" | to_entries | .[].key' | \
-                  xargs -I '{}' nix build ".#checks."${system}".{}"
-              else
-              	nix build ".#checks."${system}".$check"
-              fi
-            '';
-          };
+          run-check = flake-utils.lib.mkApp
+            {
+              drv = pkgs.writeShellScriptBin "run-check" ''
+                set -e
+                check=$1
+                if [ -z "$check" ]; then
+                  nix flake show --json 2>/dev/null | \
+                    jq -r '.checks."${system}" | to_entries | .[].key' | \
+                    xargs -I '{}' nix build ".#checks."${system}".{}"
+                else
+                	nix build ".#checks."${system}".$check"
+                fi
+              '';
+            };
         in
         {
           treefmt = {

@@ -11,14 +11,15 @@
 
 [package]
 edition = "2021"
-rust-version = "1.63"
+rust-version = "1.71"
 name = "rustls"
-version = "0.23.17"
+version = "0.23.22"
 build = "build.rs"
 exclude = [
     "src/testdata",
     "tests/**",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -54,10 +55,6 @@ name = "rustls"
 path = "src/lib.rs"
 
 [[example]]
-name = "bench"
-path = "examples/internal/bench.rs"
-
-[[example]]
 name = "test_ca"
 path = "examples/internal/test_ca.rs"
 
@@ -68,7 +65,7 @@ harness = false
 required-features = ["ring"]
 
 [dependencies.aws-lc-rs]
-version = "1.9"
+version = "1.12"
 features = [
     "aws-lc-sys",
     "prebuilt-nasm",
@@ -139,15 +136,8 @@ version = "0.22"
 [dev-dependencies.bencher]
 version = "0.1.5"
 
-[dev-dependencies.clap]
-version = "4"
-features = [
-    "derive",
-    "env",
-]
-
 [dev-dependencies.env_logger]
-version = "0.10"
+version = "0.11"
 
 [dev-dependencies.hex]
 version = "0.4"
@@ -155,14 +145,17 @@ version = "0.4"
 [dev-dependencies.log]
 version = "0.4.8"
 
+[dev-dependencies.macro_rules_attribute]
+version = "0.2"
+
 [dev-dependencies.num-bigint]
 version = "0.4.4"
 
 [dev-dependencies.rcgen]
 version = "0.13"
 features = [
-    "aws_lc_rs",
     "pem",
+    "aws_lc_rs",
 ]
 default-features = false
 
@@ -179,6 +172,9 @@ default-features = false
 
 [dev-dependencies.webpki-roots]
 version = "0.26"
+
+[dev-dependencies.x509-parser]
+version = "0.17"
 
 [build-dependencies.rustversion]
 version = "1.0.6"
@@ -207,6 +203,7 @@ fips = [
     "aws-lc-rs?/fips",
 ]
 logging = ["log"]
+prefer-post-quantum = ["aws_lc_rs"]
 read_buf = [
     "rustversion",
     "std",
@@ -222,6 +219,3 @@ std = [
 ]
 tls12 = []
 zlib = ["dep:zlib-rs"]
-
-[target.'cfg(not(target_env = "msvc"))'.dev-dependencies.tikv-jemallocator]
-version = "0.6"

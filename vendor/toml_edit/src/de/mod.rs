@@ -21,7 +21,7 @@ use table_enum::TableEnumDeserializer;
 pub use value::ValueDeserializer;
 
 /// Errors that can occur when deserializing a type.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Error {
     inner: crate::TomlError,
 }
@@ -66,6 +66,12 @@ impl serde::de::Error for Error {
 }
 
 impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
+impl std::fmt::Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)
     }
@@ -263,7 +269,7 @@ impl<'de, S: Into<String>> serde::Deserializer<'de> for Deserializer<S> {
     }
 }
 
-impl<'de> serde::de::IntoDeserializer<'de, Error> for Deserializer {
+impl serde::de::IntoDeserializer<'_, Error> for Deserializer {
     type Deserializer = Deserializer;
 
     fn into_deserializer(self) -> Self::Deserializer {
@@ -271,7 +277,7 @@ impl<'de> serde::de::IntoDeserializer<'de, Error> for Deserializer {
     }
 }
 
-impl<'de> serde::de::IntoDeserializer<'de, Error> for crate::DocumentMut {
+impl serde::de::IntoDeserializer<'_, Error> for crate::DocumentMut {
     type Deserializer = Deserializer;
 
     fn into_deserializer(self) -> Self::Deserializer {
@@ -279,7 +285,7 @@ impl<'de> serde::de::IntoDeserializer<'de, Error> for crate::DocumentMut {
     }
 }
 
-impl<'de> serde::de::IntoDeserializer<'de, Error> for crate::ImDocument<String> {
+impl serde::de::IntoDeserializer<'_, Error> for crate::ImDocument<String> {
     type Deserializer = Deserializer;
 
     fn into_deserializer(self) -> Self::Deserializer {

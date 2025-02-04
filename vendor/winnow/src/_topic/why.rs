@@ -2,9 +2,13 @@
 //!
 //! To answer this question, it will be useful to contrast this with other approaches to parsing.
 //!
+//! <div class="warning">
+//!
 //! **Note:** This will focus on principles and priorities. For a deeper and wider wider
 //! comparison with other Rust parser libraries, see
 //! [parse-rosetta-rs](https://github.com/rosetta-rs/parse-rosetta-rs).
+//!
+//! </div>
 //!
 //! ## Hand-written parsers
 //!
@@ -36,9 +40,9 @@
 //!
 //! `winnow` includes support for:
 //! - Zero-copy parsing
-//! - [Parse traces] for easier debugging
-//! - [Streaming parsing][crate::Partial] for network communication or large file
-//! - [Stateful][crate::Stateful] parsers
+//! - [Parse traces][trace] for easier debugging
+//! - [Streaming parsing][Partial] for network communication or large file
+//! - [Stateful] parsers
 //!
 //! For binary formats, `winnow` includes:
 //! - [A hexadecimal view][crate::Bytes] in [trace]
@@ -46,7 +50,7 @@
 //! - Some common parsers to help get started, like numbers
 //!
 //! For text formats, `winnow` includes:
-//! - [Tracking of spans][crate::Located]
+//! - [Tracking of spans][crate::LocatingSlice]
 //! - [A textual view when parsing as bytes][crate::BStr] in [trace]
 //! - Ability to evaluate directly, parse to an AST, or lex and parse the format
 //!
@@ -68,7 +72,9 @@
 //!   and to not block users on new features being merged while `winnow` aims to include all the
 //!   fundamentals for parsing to ensure the experience is cohesive and high quality.
 //!
-//! See also our [nom migration guide][super::nom]
+//! For more details, see the [design differences][super::nom#api-differences].
+//!
+//! See also our [nom migration guide][super::nom#migrating-from-nom].
 //!
 //! ## `chumsky`
 //!
@@ -100,3 +106,5 @@
 use crate::binary::length_take;
 use crate::combinator::trace;
 use crate::stream::Accumulate;
+use crate::stream::Partial;
+use crate::stream::Stateful;

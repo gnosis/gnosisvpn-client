@@ -5,16 +5,14 @@ mod tests;
 
 use crate::combinator::trace;
 use crate::combinator::DisplayDebug;
-use crate::error::ErrMode;
-use crate::error::ErrorKind;
 use crate::error::Needed;
 use crate::error::ParserError;
 use crate::lib::std::result::Result::Ok;
 use crate::stream::Range;
-use crate::stream::{Compare, CompareResult, ContainsToken, FindSlice, SliceLen, Stream};
+use crate::stream::{Compare, CompareResult, ContainsToken, FindSlice, Stream};
 use crate::stream::{StreamIsPartial, ToUsize};
-use crate::PResult;
 use crate::Parser;
+use crate::Result;
 
 /// Matches one token
 ///
@@ -27,7 +25,7 @@ use crate::Parser;
 /// Assuming you are parsing a `&str` [Stream]:
 /// ```rust
 /// # use winnow::prelude::*;;
-/// pub fn any(input: &mut &str) -> PResult<char>
+/// pub fn any(input: &mut &str) -> ModalResult<char>
 /// # {
 /// #     winnow::token::any.parse_next(input)
 /// # }
@@ -36,26 +34,26 @@ use crate::Parser;
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{token::any, error::ErrMode, error::{InputError, ErrorKind}};
+/// # use winnow::{token::any, error::ErrMode, error::ContextError};
 /// # use winnow::prelude::*;
-/// fn parser(input: &str) -> IResult<&str, char> {
-///     any.parse_peek(input)
+/// fn parser(input: &mut &str) -> ModalResult<char> {
+///     any.parse_next(input)
 /// }
 ///
-/// assert_eq!(parser("abc"), Ok(("bc",'a')));
-/// assert_eq!(parser(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Token))));
+/// assert_eq!(parser.parse_peek("abc"), Ok(("bc",'a')));
+/// assert!(parser.parse_peek("").is_err());
 /// ```
 ///
 /// ```rust
-/// # use winnow::{token::any, error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::{token::any, error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
-/// assert_eq!(any::<_, InputError<_>>.parse_peek(Partial::new("abc")), Ok((Partial::new("bc"),'a')));
-/// assert_eq!(any::<_, InputError<_>>.parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(any::<_, ErrMode<ContextError>>.parse_peek(Partial::new("abc")), Ok((Partial::new("bc"),'a')));
+/// assert_eq!(any::<_, ErrMode<ContextError>>.parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
 /// ```
 #[inline(always)]
 #[doc(alias = "token")]
-pub fn any<Input, Error>(input: &mut Input) -> PResult<<Input as Stream>::Token, Error>
+pub fn any<Input, Error>(input: &mut Input) -> Result<<Input as Stream>::Token, Error>
 where
     Input: StreamIsPartial + Stream,
     Error: ParserError<Input>,
@@ -70,18 +68,16 @@ where
     .parse_next(input)
 }
 
-fn any_<I, E: ParserError<I>, const PARTIAL: bool>(
-    input: &mut I,
-) -> PResult<<I as Stream>::Token, E>
+fn any_<I, E: ParserError<I>, const PARTIAL: bool>(input: &mut I) -> Result<<I as Stream>::Token, E>
 where
     I: StreamIsPartial,
     I: Stream,
 {
     input.next_token().ok_or_else(|| {
         if PARTIAL && input.is_partial() {
-            ErrMode::Incomplete(Needed::new(1))
+            ParserError::incomplete(input, Needed::new(1))
         } else {
-            ErrMode::from_error_kind(input, ErrorKind::Token)
+            ParserError::from_input(input)
         }
     })
 }
@@ -91,10 +87,14 @@ where
 /// The input data will be compared to the literal combinator's argument and will return the part of
 /// the input that matches the argument
 ///
-/// It will return `Err(ErrMode::Backtrack(InputError::new(_, ErrorKind::Tag)))` if the input doesn't match the literal
+/// It will return `Err(ErrMode::Backtrack(_))` if the input doesn't match the literal
+///
+/// <div class="warning">
 ///
 /// **Note:** [`Parser`] is implemented for strings and byte strings as a convenience (complete
 /// only)
+///
+/// </div>
 ///
 /// # Effective Signature
 ///
@@ -111,47 +111,47 @@ where
 /// # Example
 /// ```rust
 /// # use winnow::prelude::*;
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// #
-/// fn parser(s: &str) -> IResult<&str, &str> {
-///   "Hello".parse_peek(s)
+/// fn parser<'i>(s: &mut &'i str) -> ModalResult<&'i str> {
+///   "Hello".parse_next(s)
 /// }
 ///
-/// assert_eq!(parser("Hello, World!"), Ok((", World!", "Hello")));
-/// assert_eq!(parser("Something"), Err(ErrMode::Backtrack(InputError::new("Something", ErrorKind::Tag))));
-/// assert_eq!(parser(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Tag))));
+/// assert_eq!(parser.parse_peek("Hello, World!"), Ok((", World!", "Hello")));
+/// assert!(parser.parse_peek("Something").is_err());
+/// assert!(parser.parse_peek("").is_err());
 /// ```
 ///
 /// ```rust
 /// # use winnow::prelude::*;
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::Partial;
 ///
-/// fn parser(s: Partial<&str>) -> IResult<Partial<&str>, &str> {
-///   "Hello".parse_peek(s)
+/// fn parser<'i>(s: &mut Partial<&'i str>) -> ModalResult<&'i str> {
+///   "Hello".parse_next(s)
 /// }
 ///
-/// assert_eq!(parser(Partial::new("Hello, World!")), Ok((Partial::new(", World!"), "Hello")));
-/// assert_eq!(parser(Partial::new("Something")), Err(ErrMode::Backtrack(InputError::new(Partial::new("Something"), ErrorKind::Tag))));
-/// assert_eq!(parser(Partial::new("S")), Err(ErrMode::Backtrack(InputError::new(Partial::new("S"), ErrorKind::Tag))));
-/// assert_eq!(parser(Partial::new("H")), Err(ErrMode::Incomplete(Needed::new(4))));
+/// assert_eq!(parser.parse_peek(Partial::new("Hello, World!")), Ok((Partial::new(", World!"), "Hello")));
+/// assert!(parser.parse_peek(Partial::new("Something")).is_err());
+/// assert!(parser.parse_peek(Partial::new("S")).is_err());
+/// assert_eq!(parser.parse_peek(Partial::new("H")), Err(ErrMode::Incomplete(Needed::Unknown)));
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::literal;
 /// use winnow::ascii::Caseless;
 ///
-/// fn parser(s: &str) -> IResult<&str, &str> {
-///   literal(Caseless("hello")).parse_peek(s)
+/// fn parser<'i>(s: &mut &'i str) -> ModalResult<&'i str> {
+///   literal(Caseless("hello")).parse_next(s)
 /// }
 ///
-/// assert_eq!(parser("Hello, World!"), Ok((", World!", "Hello")));
-/// assert_eq!(parser("hello, World!"), Ok((", World!", "hello")));
-/// assert_eq!(parser("HeLlO, World!"), Ok((", World!", "HeLlO")));
-/// assert_eq!(parser("Something"), Err(ErrMode::Backtrack(InputError::new("Something", ErrorKind::Tag))));
-/// assert_eq!(parser(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Tag))));
+/// assert_eq!(parser.parse_peek("Hello, World!"), Ok((", World!", "Hello")));
+/// assert_eq!(parser.parse_peek("hello, World!"), Ok((", World!", "hello")));
+/// assert_eq!(parser.parse_peek("HeLlO, World!"), Ok((", World!", "HeLlO")));
+/// assert!(parser.parse_peek("Something").is_err());
+/// assert!(parser.parse_peek("").is_err());
 /// ```
 #[inline(always)]
 #[doc(alias = "tag")]
@@ -162,7 +162,7 @@ pub fn literal<Literal, Input, Error>(
 ) -> impl Parser<Input, <Input as Stream>::Slice, Error>
 where
     Input: StreamIsPartial + Stream + Compare<Literal>,
-    Literal: SliceLen + Clone + crate::lib::std::fmt::Debug,
+    Literal: Clone + crate::lib::std::fmt::Debug,
     Error: ParserError<Input>,
 {
     trace(DisplayDebug(literal.clone()), move |i: &mut Input| {
@@ -178,31 +178,31 @@ where
 fn literal_<T, I, Error: ParserError<I>, const PARTIAL: bool>(
     i: &mut I,
     t: T,
-) -> PResult<<I as Stream>::Slice, Error>
+) -> Result<<I as Stream>::Slice, Error>
 where
     I: StreamIsPartial,
     I: Stream + Compare<T>,
-    T: SliceLen + crate::lib::std::fmt::Debug,
+    T: crate::lib::std::fmt::Debug,
 {
-    let literal_len = t.slice_len();
     match i.compare(t) {
         CompareResult::Ok(len) => Ok(i.next_slice(len)),
-        CompareResult::Incomplete if PARTIAL && i.is_partial() => Err(ErrMode::Incomplete(
-            Needed::new(literal_len - i.eof_offset()),
-        )),
-        CompareResult::Incomplete | CompareResult::Error => {
-            let e: ErrorKind = ErrorKind::Tag;
-            Err(ErrMode::from_error_kind(i, e))
+        CompareResult::Incomplete if PARTIAL && i.is_partial() => {
+            Err(ParserError::incomplete(i, Needed::Unknown))
         }
+        CompareResult::Incomplete | CompareResult::Error => Err(ParserError::from_input(i)),
     }
 }
 
 /// Recognize a token that matches a [set of tokens][ContainsToken]
 ///
+/// <div class="warning">
+///
 /// **Note:** [`Parser`] is implemented as a convenience (complete
 /// only) for
 /// - `u8`
 /// - `char`
+///
+/// </div>
 ///
 /// *Complete version*: Will return an error if there's not enough input data.
 ///
@@ -225,35 +225,35 @@ where
 ///
 /// ```rust
 /// # use winnow::prelude::*;
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError};
+/// # use winnow::{error::ErrMode, error::ContextError};
 /// # use winnow::token::one_of;
-/// assert_eq!(one_of::<_, _, InputError<_>>(['a', 'b', 'c']).parse_peek("b"), Ok(("", 'b')));
-/// assert_eq!(one_of::<_, _, InputError<_>>('a').parse_peek("bc"), Err(ErrMode::Backtrack(InputError::new("bc", ErrorKind::Verify))));
-/// assert_eq!(one_of::<_, _, InputError<_>>('a').parse_peek(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Token))));
+/// assert_eq!(one_of::<_, _, ContextError>(['a', 'b', 'c']).parse_peek("b"), Ok(("", 'b')));
+/// assert!(one_of::<_, _, ContextError>('a').parse_peek("bc").is_err());
+/// assert!(one_of::<_, _, ContextError>('a').parse_peek("").is_err());
 ///
-/// fn parser_fn(i: &str) -> IResult<&str, char> {
-///     one_of(|c| c == 'a' || c == 'b').parse_peek(i)
+/// fn parser_fn(i: &mut &str) -> ModalResult<char> {
+///     one_of(|c| c == 'a' || c == 'b').parse_next(i)
 /// }
-/// assert_eq!(parser_fn("abc"), Ok(("bc", 'a')));
-/// assert_eq!(parser_fn("cd"), Err(ErrMode::Backtrack(InputError::new("cd", ErrorKind::Verify))));
-/// assert_eq!(parser_fn(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Token))));
+/// assert_eq!(parser_fn.parse_peek("abc"), Ok(("bc", 'a')));
+/// assert!(parser_fn.parse_peek("cd").is_err());
+/// assert!(parser_fn.parse_peek("").is_err());
 /// ```
 ///
-/// ```
+/// ```rust
 /// # use winnow::prelude::*;
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::Partial;
 /// # use winnow::token::one_of;
-/// assert_eq!(one_of::<_, _, InputError<_>>(['a', 'b', 'c']).parse_peek(Partial::new("b")), Ok((Partial::new(""), 'b')));
-/// assert_eq!(one_of::<_, _, InputError<_>>('a').parse_peek(Partial::new("bc")), Err(ErrMode::Backtrack(InputError::new(Partial::new("bc"), ErrorKind::Verify))));
-/// assert_eq!(one_of::<_, _, InputError<_>>('a').parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(one_of::<_, _, ErrMode<ContextError>>(['a', 'b', 'c']).parse_peek(Partial::new("b")), Ok((Partial::new(""), 'b')));
+/// assert!(one_of::<_, _, ErrMode<ContextError>>('a').parse_peek(Partial::new("bc")).is_err());
+/// assert_eq!(one_of::<_, _, ErrMode<ContextError>>('a').parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
 ///
-/// fn parser_fn(i: Partial<&str>) -> IResult<Partial<&str>, char> {
-///     one_of(|c| c == 'a' || c == 'b').parse_peek(i)
+/// fn parser_fn(i: &mut Partial<&str>) -> ModalResult<char> {
+///     one_of(|c| c == 'a' || c == 'b').parse_next(i)
 /// }
-/// assert_eq!(parser_fn(Partial::new("abc")), Ok((Partial::new("bc"), 'a')));
-/// assert_eq!(parser_fn(Partial::new("cd")), Err(ErrMode::Backtrack(InputError::new(Partial::new("cd"), ErrorKind::Verify))));
-/// assert_eq!(parser_fn(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(parser_fn.parse_peek(Partial::new("abc")), Ok((Partial::new("bc"), 'a')));
+/// assert!(parser_fn.parse_peek(Partial::new("cd")).is_err());
+/// assert_eq!(parser_fn.parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
 /// ```
 #[inline(always)]
 #[doc(alias = "char")]
@@ -294,22 +294,22 @@ where
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError};
+/// # use winnow::{error::ErrMode, error::ContextError};
 /// # use winnow::prelude::*;
 /// # use winnow::token::none_of;
-/// assert_eq!(none_of::<_, _, InputError<_>>(['a', 'b', 'c']).parse_peek("z"), Ok(("", 'z')));
-/// assert_eq!(none_of::<_, _, InputError<_>>(['a', 'b']).parse_peek("a"), Err(ErrMode::Backtrack(InputError::new("a", ErrorKind::Verify))));
-/// assert_eq!(none_of::<_, _, InputError<_>>('a').parse_peek(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Token))));
+/// assert_eq!(none_of::<_, _, ContextError>(['a', 'b', 'c']).parse_peek("z"), Ok(("", 'z')));
+/// assert!(none_of::<_, _, ContextError>(['a', 'b']).parse_peek("a").is_err());
+/// assert!(none_of::<_, _, ContextError>('a').parse_peek("").is_err());
 /// ```
 ///
-/// ```
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// ```rust
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
 /// # use winnow::token::none_of;
-/// assert_eq!(none_of::<_, _, InputError<_>>(['a', 'b', 'c']).parse_peek(Partial::new("z")), Ok((Partial::new(""), 'z')));
-/// assert_eq!(none_of::<_, _, InputError<_>>(['a', 'b']).parse_peek(Partial::new("a")), Err(ErrMode::Backtrack(InputError::new(Partial::new("a"), ErrorKind::Verify))));
-/// assert_eq!(none_of::<_, _, InputError<_>>('a').parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(none_of::<_, _, ErrMode<ContextError>>(['a', 'b', 'c']).parse_peek(Partial::new("z")), Ok((Partial::new(""), 'z')));
+/// assert!(none_of::<_, _, ErrMode<ContextError>>(['a', 'b']).parse_peek(Partial::new("a")).is_err());
+/// assert_eq!(none_of::<_, _, ErrMode<ContextError>>('a').parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
 /// ```
 #[inline(always)]
 pub fn none_of<Input, Set, Error>(set: Set) -> impl Parser<Input, <Input as Stream>::Token, Error>
@@ -327,7 +327,7 @@ where
 
 /// Recognize the longest (m <= len <= n) input slice that matches a [set of tokens][ContainsToken]
 ///
-/// It will return an `ErrMode::Backtrack(InputError::new(_, ErrorKind::Slice))` if the set of tokens wasn't met or is out
+/// It will return an `ErrMode::Backtrack(_)` if the set of tokens wasn't met or is out
 /// of range (m <= len <= n).
 ///
 /// *[Partial version][crate::_topic::partial]* will return a `ErrMode::Incomplete(Needed::new(1))` if a member of the set of tokens reaches the end of the input or is too short.
@@ -352,124 +352,124 @@ where
 ///
 /// Zero or more tokens:
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::take_while;
 /// use winnow::stream::AsChar;
 ///
-/// fn alpha(s: &[u8]) -> IResult<&[u8], &[u8]> {
-///   take_while(0.., AsChar::is_alpha).parse_peek(s)
+/// fn alpha<'i>(s: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+///   take_while(0.., AsChar::is_alpha).parse_next(s)
 /// }
 ///
-/// assert_eq!(alpha(b"latin123"), Ok((&b"123"[..], &b"latin"[..])));
-/// assert_eq!(alpha(b"12345"), Ok((&b"12345"[..], &b""[..])));
-/// assert_eq!(alpha(b"latin"), Ok((&b""[..], &b"latin"[..])));
-/// assert_eq!(alpha(b""), Ok((&b""[..], &b""[..])));
+/// assert_eq!(alpha.parse_peek(b"latin123"), Ok((&b"123"[..], &b"latin"[..])));
+/// assert_eq!(alpha.parse_peek(b"12345"), Ok((&b"12345"[..], &b""[..])));
+/// assert_eq!(alpha.parse_peek(b"latin"), Ok((&b""[..], &b"latin"[..])));
+/// assert_eq!(alpha.parse_peek(b""), Ok((&b""[..], &b""[..])));
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
 /// use winnow::token::take_while;
 /// use winnow::stream::AsChar;
 ///
-/// fn alpha(s: Partial<&[u8]>) -> IResult<Partial<&[u8]>, &[u8]> {
-///   take_while(0.., AsChar::is_alpha).parse_peek(s)
+/// fn alpha<'i>(s: &mut Partial<&'i [u8]>) -> ModalResult<&'i [u8]> {
+///   take_while(0.., AsChar::is_alpha).parse_next(s)
 /// }
 ///
-/// assert_eq!(alpha(Partial::new(b"latin123")), Ok((Partial::new(&b"123"[..]), &b"latin"[..])));
-/// assert_eq!(alpha(Partial::new(b"12345")), Ok((Partial::new(&b"12345"[..]), &b""[..])));
-/// assert_eq!(alpha(Partial::new(b"latin")), Err(ErrMode::Incomplete(Needed::new(1))));
-/// assert_eq!(alpha(Partial::new(b"")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(alpha.parse_peek(Partial::new(b"latin123")), Ok((Partial::new(&b"123"[..]), &b"latin"[..])));
+/// assert_eq!(alpha.parse_peek(Partial::new(b"12345")), Ok((Partial::new(&b"12345"[..]), &b""[..])));
+/// assert_eq!(alpha.parse_peek(Partial::new(b"latin")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(alpha.parse_peek(Partial::new(b"")), Err(ErrMode::Incomplete(Needed::new(1))));
 /// ```
 ///
 /// One or more tokens:
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::take_while;
 /// use winnow::stream::AsChar;
 ///
-/// fn alpha(s: &[u8]) -> IResult<&[u8], &[u8]> {
-///   take_while(1.., AsChar::is_alpha).parse_peek(s)
+/// fn alpha<'i>(s: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+///   take_while(1.., AsChar::is_alpha).parse_next(s)
 /// }
 ///
-/// assert_eq!(alpha(b"latin123"), Ok((&b"123"[..], &b"latin"[..])));
-/// assert_eq!(alpha(b"latin"), Ok((&b""[..], &b"latin"[..])));
-/// assert_eq!(alpha(b"12345"), Err(ErrMode::Backtrack(InputError::new(&b"12345"[..], ErrorKind::Slice))));
+/// assert_eq!(alpha.parse_peek(b"latin123"), Ok((&b"123"[..], &b"latin"[..])));
+/// assert_eq!(alpha.parse_peek(b"latin"), Ok((&b""[..], &b"latin"[..])));
+/// assert!(alpha.parse_peek(b"12345").is_err());
 ///
-/// fn hex(s: &str) -> IResult<&str, &str> {
-///   take_while(1.., ('0'..='9', 'A'..='F')).parse_peek(s)
+/// fn hex<'i>(s: &mut &'i str) -> ModalResult<&'i str> {
+///   take_while(1.., ('0'..='9', 'A'..='F')).parse_next(s)
 /// }
 ///
-/// assert_eq!(hex("123 and voila"), Ok((" and voila", "123")));
-/// assert_eq!(hex("DEADBEEF and others"), Ok((" and others", "DEADBEEF")));
-/// assert_eq!(hex("BADBABEsomething"), Ok(("something", "BADBABE")));
-/// assert_eq!(hex("D15EA5E"), Ok(("", "D15EA5E")));
-/// assert_eq!(hex(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Slice))));
+/// assert_eq!(hex.parse_peek("123 and voila"), Ok((" and voila", "123")));
+/// assert_eq!(hex.parse_peek("DEADBEEF and others"), Ok((" and others", "DEADBEEF")));
+/// assert_eq!(hex.parse_peek("BADBABEsomething"), Ok(("something", "BADBABE")));
+/// assert_eq!(hex.parse_peek("D15EA5E"), Ok(("", "D15EA5E")));
+/// assert!(hex.parse_peek("").is_err());
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
 /// use winnow::token::take_while;
 /// use winnow::stream::AsChar;
 ///
-/// fn alpha(s: Partial<&[u8]>) -> IResult<Partial<&[u8]>, &[u8]> {
-///   take_while(1.., AsChar::is_alpha).parse_peek(s)
+/// fn alpha<'i>(s: &mut Partial<&'i [u8]>) -> ModalResult<&'i [u8]> {
+///   take_while(1.., AsChar::is_alpha).parse_next(s)
 /// }
 ///
-/// assert_eq!(alpha(Partial::new(b"latin123")), Ok((Partial::new(&b"123"[..]), &b"latin"[..])));
-/// assert_eq!(alpha(Partial::new(b"latin")), Err(ErrMode::Incomplete(Needed::new(1))));
-/// assert_eq!(alpha(Partial::new(b"12345")), Err(ErrMode::Backtrack(InputError::new(Partial::new(&b"12345"[..]), ErrorKind::Slice))));
+/// assert_eq!(alpha.parse_peek(Partial::new(b"latin123")), Ok((Partial::new(&b"123"[..]), &b"latin"[..])));
+/// assert_eq!(alpha.parse_peek(Partial::new(b"latin")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert!(alpha.parse_peek(Partial::new(b"12345")).is_err());
 ///
-/// fn hex(s: Partial<&str>) -> IResult<Partial<&str>, &str> {
-///   take_while(1.., ('0'..='9', 'A'..='F')).parse_peek(s)
+/// fn hex<'i>(s: &mut Partial<&'i str>) -> ModalResult<&'i str> {
+///   take_while(1.., ('0'..='9', 'A'..='F')).parse_next(s)
 /// }
 ///
-/// assert_eq!(hex(Partial::new("123 and voila")), Ok((Partial::new(" and voila"), "123")));
-/// assert_eq!(hex(Partial::new("DEADBEEF and others")), Ok((Partial::new(" and others"), "DEADBEEF")));
-/// assert_eq!(hex(Partial::new("BADBABEsomething")), Ok((Partial::new("something"), "BADBABE")));
-/// assert_eq!(hex(Partial::new("D15EA5E")), Err(ErrMode::Incomplete(Needed::new(1))));
-/// assert_eq!(hex(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(hex.parse_peek(Partial::new("123 and voila")), Ok((Partial::new(" and voila"), "123")));
+/// assert_eq!(hex.parse_peek(Partial::new("DEADBEEF and others")), Ok((Partial::new(" and others"), "DEADBEEF")));
+/// assert_eq!(hex.parse_peek(Partial::new("BADBABEsomething")), Ok((Partial::new("something"), "BADBABE")));
+/// assert_eq!(hex.parse_peek(Partial::new("D15EA5E")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(hex.parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
 /// ```
 ///
 /// Arbitrary amount of tokens:
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::take_while;
 /// use winnow::stream::AsChar;
 ///
-/// fn short_alpha(s: &[u8]) -> IResult<&[u8], &[u8]> {
-///   take_while(3..=6, AsChar::is_alpha).parse_peek(s)
+/// fn short_alpha<'i>(s: &mut &'i [u8]) -> ModalResult<&'i [u8]> {
+///   take_while(3..=6, AsChar::is_alpha).parse_next(s)
 /// }
 ///
-/// assert_eq!(short_alpha(b"latin123"), Ok((&b"123"[..], &b"latin"[..])));
-/// assert_eq!(short_alpha(b"lengthy"), Ok((&b"y"[..], &b"length"[..])));
-/// assert_eq!(short_alpha(b"latin"), Ok((&b""[..], &b"latin"[..])));
-/// assert_eq!(short_alpha(b"ed"), Err(ErrMode::Backtrack(InputError::new(&b"ed"[..], ErrorKind::Slice))));
-/// assert_eq!(short_alpha(b"12345"), Err(ErrMode::Backtrack(InputError::new(&b"12345"[..], ErrorKind::Slice))));
+/// assert_eq!(short_alpha.parse_peek(b"latin123"), Ok((&b"123"[..], &b"latin"[..])));
+/// assert_eq!(short_alpha.parse_peek(b"lengthy"), Ok((&b"y"[..], &b"length"[..])));
+/// assert_eq!(short_alpha.parse_peek(b"latin"), Ok((&b""[..], &b"latin"[..])));
+/// assert!(short_alpha.parse_peek(b"ed").is_err());
+/// assert!(short_alpha.parse_peek(b"12345").is_err());
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
 /// use winnow::token::take_while;
 /// use winnow::stream::AsChar;
 ///
-/// fn short_alpha(s: Partial<&[u8]>) -> IResult<Partial<&[u8]>, &[u8]> {
-///   take_while(3..=6, AsChar::is_alpha).parse_peek(s)
+/// fn short_alpha<'i>(s: &mut Partial<&'i [u8]>) -> ModalResult<&'i [u8]> {
+///   take_while(3..=6, AsChar::is_alpha).parse_next(s)
 /// }
 ///
-/// assert_eq!(short_alpha(Partial::new(b"latin123")), Ok((Partial::new(&b"123"[..]), &b"latin"[..])));
-/// assert_eq!(short_alpha(Partial::new(b"lengthy")), Ok((Partial::new(&b"y"[..]), &b"length"[..])));
-/// assert_eq!(short_alpha(Partial::new(b"latin")), Err(ErrMode::Incomplete(Needed::new(1))));
-/// assert_eq!(short_alpha(Partial::new(b"ed")), Err(ErrMode::Incomplete(Needed::new(1))));
-/// assert_eq!(short_alpha(Partial::new(b"12345")), Err(ErrMode::Backtrack(InputError::new(Partial::new(&b"12345"[..]), ErrorKind::Slice))));
+/// assert_eq!(short_alpha.parse_peek(Partial::new(b"latin123")), Ok((Partial::new(&b"123"[..]), &b"latin"[..])));
+/// assert_eq!(short_alpha.parse_peek(Partial::new(b"lengthy")), Ok((Partial::new(&b"y"[..]), &b"length"[..])));
+/// assert_eq!(short_alpha.parse_peek(Partial::new(b"latin")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(short_alpha.parse_peek(Partial::new(b"ed")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert!(short_alpha.parse_peek(Partial::new(b"12345")).is_err());
 /// ```
 #[inline(always)]
 #[doc(alias = "is_a")]
@@ -492,133 +492,63 @@ where
         match (start_inclusive, end_inclusive) {
             (0, None) => {
                 if <Input as StreamIsPartial>::is_partial_supported() {
-                    take_while0_::<_, _, _, true>(i, &set)
+                    take_till0::<_, _, _, true>(i, |c| !set.contains_token(c))
                 } else {
-                    take_while0_::<_, _, _, false>(i, &set)
+                    take_till0::<_, _, _, false>(i, |c| !set.contains_token(c))
                 }
             }
             (1, None) => {
                 if <Input as StreamIsPartial>::is_partial_supported() {
-                    take_while1_::<_, _, _, true>(i, &set)
+                    take_till1::<_, _, _, true>(i, |c| !set.contains_token(c))
                 } else {
-                    take_while1_::<_, _, _, false>(i, &set)
+                    take_till1::<_, _, _, false>(i, |c| !set.contains_token(c))
                 }
             }
             (start, end) => {
                 let end = end.unwrap_or(usize::MAX);
                 if <Input as StreamIsPartial>::is_partial_supported() {
-                    take_while_m_n_::<_, _, _, true>(i, start, end, &set)
+                    take_till_m_n::<_, _, _, true>(i, start, end, |c| !set.contains_token(c))
                 } else {
-                    take_while_m_n_::<_, _, _, false>(i, start, end, &set)
+                    take_till_m_n::<_, _, _, false>(i, start, end, |c| !set.contains_token(c))
                 }
             }
         }
     })
 }
 
-fn take_while0_<T, I, Error: ParserError<I>, const PARTIAL: bool>(
-    input: &mut I,
-    list: &T,
-) -> PResult<<I as Stream>::Slice, Error>
-where
-    I: StreamIsPartial,
-    I: Stream,
-    T: ContainsToken<<I as Stream>::Token>,
-{
-    if PARTIAL && input.is_partial() {
-        take_till0_partial(input, |c| !list.contains_token(c))
-    } else {
-        take_till0_complete(input, |c| !list.contains_token(c))
-    }
-}
-
-fn take_while1_<T, I, Error: ParserError<I>, const PARTIAL: bool>(
-    input: &mut I,
-    list: &T,
-) -> PResult<<I as Stream>::Slice, Error>
-where
-    I: StreamIsPartial,
-    I: Stream,
-    T: ContainsToken<<I as Stream>::Token>,
-{
-    if PARTIAL && input.is_partial() {
-        take_till1_partial(input, |c| !list.contains_token(c))
-    } else {
-        take_till1_complete(input, |c| !list.contains_token(c))
-    }
-}
-
-fn take_while_m_n_<T, I, Error: ParserError<I>, const PARTIAL: bool>(
-    input: &mut I,
-    m: usize,
-    n: usize,
-    list: &T,
-) -> PResult<<I as Stream>::Slice, Error>
-where
-    I: StreamIsPartial,
-    I: Stream,
-    T: ContainsToken<<I as Stream>::Token>,
-{
-    take_till_m_n::<_, _, _, PARTIAL>(input, m, n, |c| !list.contains_token(c))
-}
-
-fn take_till0_partial<P, I: Stream, E: ParserError<I>>(
+fn take_till0<P, I: StreamIsPartial + Stream, E: ParserError<I>, const PARTIAL: bool>(
     input: &mut I,
     predicate: P,
-) -> PResult<<I as Stream>::Slice, E>
+) -> Result<<I as Stream>::Slice, E>
 where
     P: Fn(I::Token) -> bool,
 {
-    let offset = input
-        .offset_for(predicate)
-        .ok_or_else(|| ErrMode::Incomplete(Needed::new(1)))?;
+    let offset = match input.offset_for(predicate) {
+        Some(offset) => offset,
+        None if PARTIAL && input.is_partial() => {
+            return Err(ParserError::incomplete(input, Needed::new(1)));
+        }
+        None => input.eof_offset(),
+    };
     Ok(input.next_slice(offset))
 }
 
-fn take_till1_partial<P, I: Stream, E: ParserError<I>>(
+fn take_till1<P, I: StreamIsPartial + Stream, E: ParserError<I>, const PARTIAL: bool>(
     input: &mut I,
     predicate: P,
-) -> PResult<<I as Stream>::Slice, E>
+) -> Result<<I as Stream>::Slice, E>
 where
     P: Fn(I::Token) -> bool,
 {
-    let e: ErrorKind = ErrorKind::Slice;
-    let offset = input
-        .offset_for(predicate)
-        .ok_or_else(|| ErrMode::Incomplete(Needed::new(1)))?;
+    let offset = match input.offset_for(predicate) {
+        Some(offset) => offset,
+        None if PARTIAL && input.is_partial() => {
+            return Err(ParserError::incomplete(input, Needed::new(1)));
+        }
+        None => input.eof_offset(),
+    };
     if offset == 0 {
-        Err(ErrMode::from_error_kind(input, e))
-    } else {
-        Ok(input.next_slice(offset))
-    }
-}
-
-fn take_till0_complete<P, I: Stream, E: ParserError<I>>(
-    input: &mut I,
-    predicate: P,
-) -> PResult<<I as Stream>::Slice, E>
-where
-    P: Fn(I::Token) -> bool,
-{
-    let offset = input
-        .offset_for(predicate)
-        .unwrap_or_else(|| input.eof_offset());
-    Ok(input.next_slice(offset))
-}
-
-fn take_till1_complete<P, I: Stream, E: ParserError<I>>(
-    input: &mut I,
-    predicate: P,
-) -> PResult<<I as Stream>::Slice, E>
-where
-    P: Fn(I::Token) -> bool,
-{
-    let e: ErrorKind = ErrorKind::Slice;
-    let offset = input
-        .offset_for(predicate)
-        .unwrap_or_else(|| input.eof_offset());
-    if offset == 0 {
-        Err(ErrMode::from_error_kind(input, e))
+        Err(ParserError::from_input(input))
     } else {
         Ok(input.next_slice(offset))
     }
@@ -629,14 +559,14 @@ fn take_till_m_n<P, I, Error: ParserError<I>, const PARTIAL: bool>(
     m: usize,
     n: usize,
     predicate: P,
-) -> PResult<<I as Stream>::Slice, Error>
+) -> Result<<I as Stream>::Slice, Error>
 where
     I: StreamIsPartial,
     I: Stream,
     P: Fn(I::Token) -> bool,
 {
     if n < m {
-        return Err(ErrMode::assert(
+        return Err(ParserError::assert(
             input,
             "`occurrences` should be ascending, rather than descending",
         ));
@@ -646,7 +576,7 @@ where
     for (processed, (offset, token)) in input.iter_offsets().enumerate() {
         if predicate(token) {
             if processed < m {
-                return Err(ErrMode::from_error_kind(input, ErrorKind::Slice));
+                return Err(ParserError::from_input(input));
             } else {
                 return Ok(input.next_slice(offset));
             }
@@ -666,13 +596,13 @@ where
             } else {
                 1
             };
-            Err(ErrMode::Incomplete(Needed::new(needed)))
+            Err(ParserError::incomplete(input, Needed::new(needed)))
         }
     } else {
         if m <= final_count {
             Ok(input.finish())
         } else {
-            Err(ErrMode::from_error_kind(input, ErrorKind::Slice))
+            Err(ParserError::from_input(input))
         }
     }
 }
@@ -705,34 +635,34 @@ where
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::take_till;
 ///
-/// fn till_colon(s: &str) -> IResult<&str, &str> {
-///   take_till(0.., |c| c == ':').parse_peek(s)
+/// fn till_colon<'i>(s: &mut &'i str) -> ModalResult<&'i str> {
+///   take_till(0.., |c| c == ':').parse_next(s)
 /// }
 ///
-/// assert_eq!(till_colon("latin:123"), Ok((":123", "latin")));
-/// assert_eq!(till_colon(":empty matched"), Ok((":empty matched", ""))); //allowed
-/// assert_eq!(till_colon("12345"), Ok(("", "12345")));
-/// assert_eq!(till_colon(""), Ok(("", "")));
+/// assert_eq!(till_colon.parse_peek("latin:123"), Ok((":123", "latin")));
+/// assert_eq!(till_colon.parse_peek(":empty matched"), Ok((":empty matched", ""))); //allowed
+/// assert_eq!(till_colon.parse_peek("12345"), Ok(("", "12345")));
+/// assert_eq!(till_colon.parse_peek(""), Ok(("", "")));
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
 /// use winnow::token::take_till;
 ///
-/// fn till_colon(s: Partial<&str>) -> IResult<Partial<&str>, &str> {
-///   take_till(0.., |c| c == ':').parse_peek(s)
+/// fn till_colon<'i>(s: &mut Partial<&'i str>) -> ModalResult<&'i str> {
+///   take_till(0.., |c| c == ':').parse_next(s)
 /// }
 ///
-/// assert_eq!(till_colon(Partial::new("latin:123")), Ok((Partial::new(":123"), "latin")));
-/// assert_eq!(till_colon(Partial::new(":empty matched")), Ok((Partial::new(":empty matched"), ""))); //allowed
-/// assert_eq!(till_colon(Partial::new("12345")), Err(ErrMode::Incomplete(Needed::new(1))));
-/// assert_eq!(till_colon(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(till_colon.parse_peek(Partial::new("latin:123")), Ok((Partial::new(":123"), "latin")));
+/// assert_eq!(till_colon.parse_peek(Partial::new(":empty matched")), Ok((Partial::new(":empty matched"), ""))); //allowed
+/// assert_eq!(till_colon.parse_peek(Partial::new("12345")), Err(ErrMode::Incomplete(Needed::new(1))));
+/// assert_eq!(till_colon.parse_peek(Partial::new("")), Err(ErrMode::Incomplete(Needed::new(1))));
 /// ```
 #[inline(always)]
 #[doc(alias = "is_not")]
@@ -753,16 +683,16 @@ where
         match (start_inclusive, end_inclusive) {
             (0, None) => {
                 if <Input as StreamIsPartial>::is_partial_supported() {
-                    take_till0_partial(i, |c| set.contains_token(c))
+                    take_till0::<_, _, _, true>(i, |c| set.contains_token(c))
                 } else {
-                    take_till0_complete(i, |c| set.contains_token(c))
+                    take_till0::<_, _, _, false>(i, |c| set.contains_token(c))
                 }
             }
             (1, None) => {
                 if <Input as StreamIsPartial>::is_partial_supported() {
-                    take_till1_partial(i, |c| set.contains_token(c))
+                    take_till1::<_, _, _, true>(i, |c| set.contains_token(c))
                 } else {
-                    take_till1_complete(i, |c| set.contains_token(c))
+                    take_till1::<_, _, _, false>(i, |c| set.contains_token(c))
                 }
             }
             (start, end) => {
@@ -779,7 +709,7 @@ where
 
 /// Recognize an input slice containing the first N input elements (I[..N]).
 ///
-/// *Complete version*: It will return `Err(ErrMode::Backtrack(InputError::new(_, ErrorKind::Slice)))` if the input is shorter than the argument.
+/// *Complete version*: It will return `Err(ErrMode::Backtrack(_))` if the input is shorter than the argument.
 ///
 /// *[Partial version][crate::_topic::partial]*: if the input has less than N elements, `take` will
 /// return a `ErrMode::Incomplete(Needed::new(M))` where M is the number of
@@ -805,18 +735,18 @@ where
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::take;
 ///
-/// fn take6(s: &str) -> IResult<&str, &str> {
-///   take(6usize).parse_peek(s)
+/// fn take6<'i>(s: &mut &'i str) -> ModalResult<&'i str> {
+///   take(6usize).parse_next(s)
 /// }
 ///
-/// assert_eq!(take6("1234567"), Ok(("7", "123456")));
-/// assert_eq!(take6("things"), Ok(("", "things")));
-/// assert_eq!(take6("short"), Err(ErrMode::Backtrack(InputError::new("short", ErrorKind::Slice))));
-/// assert_eq!(take6(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Slice))));
+/// assert_eq!(take6.parse_peek("1234567"), Ok(("7", "123456")));
+/// assert_eq!(take6.parse_peek("things"), Ok(("", "things")));
+/// assert!(take6.parse_peek("short").is_err());
+/// assert!(take6.parse_peek("").is_err());
 /// ```
 ///
 /// The units that are taken will depend on the input type. For example, for a
@@ -825,27 +755,27 @@ where
 ///
 /// ```rust
 /// # use winnow::prelude::*;
-/// use winnow::error::InputError;
+/// use winnow::error::ContextError;
 /// use winnow::token::take;
 ///
-/// assert_eq!(take::<_, _, InputError<_>>(1usize).parse_peek("💙"), Ok(("", "💙")));
-/// assert_eq!(take::<_, _, InputError<_>>(1usize).parse_peek("💙".as_bytes()), Ok((b"\x9F\x92\x99".as_ref(), b"\xF0".as_ref())));
+/// assert_eq!(take::<_, _, ContextError>(1usize).parse_peek("💙"), Ok(("", "💙")));
+/// assert_eq!(take::<_, _, ContextError>(1usize).parse_peek("💙".as_bytes()), Ok((b"\x9F\x92\x99".as_ref(), b"\xF0".as_ref())));
 /// ```
 ///
 /// ```rust
 /// # use winnow::prelude::*;
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::error::{ErrMode, ContextError, Needed};
 /// # use winnow::Partial;
 /// use winnow::token::take;
 ///
-/// fn take6(s: Partial<&str>) -> IResult<Partial<&str>, &str> {
-///   take(6usize).parse_peek(s)
+/// fn take6<'i>(s: &mut Partial<&'i str>) -> ModalResult<&'i str> {
+///   take(6usize).parse_next(s)
 /// }
 ///
-/// assert_eq!(take6(Partial::new("1234567")), Ok((Partial::new("7"), "123456")));
-/// assert_eq!(take6(Partial::new("things")), Ok((Partial::new(""), "things")));
+/// assert_eq!(take6.parse_peek(Partial::new("1234567")), Ok((Partial::new("7"), "123456")));
+/// assert_eq!(take6.parse_peek(Partial::new("things")), Ok((Partial::new(""), "things")));
 /// // `Unknown` as we don't know the number of bytes that `count` corresponds to
-/// assert_eq!(take6(Partial::new("short")), Err(ErrMode::Incomplete(Needed::Unknown)));
+/// assert_eq!(take6.parse_peek(Partial::new("short")), Err(ErrMode::Incomplete(Needed::Unknown)));
 /// ```
 #[inline(always)]
 pub fn take<UsizeLike, Input, Error>(
@@ -869,15 +799,15 @@ where
 fn take_<I, Error: ParserError<I>, const PARTIAL: bool>(
     i: &mut I,
     c: usize,
-) -> PResult<<I as Stream>::Slice, Error>
+) -> Result<<I as Stream>::Slice, Error>
 where
     I: StreamIsPartial,
     I: Stream,
 {
     match i.offset_at(c) {
         Ok(offset) => Ok(i.next_slice(offset)),
-        Err(e) if PARTIAL && i.is_partial() => Err(ErrMode::Incomplete(e)),
-        Err(_needed) => Err(ErrMode::from_error_kind(i, ErrorKind::Slice)),
+        Err(e) if PARTIAL && i.is_partial() => Err(ParserError::incomplete(i, e)),
+        Err(_needed) => Err(ParserError::from_input(i)),
     }
 }
 
@@ -887,7 +817,7 @@ where
 ///
 /// It doesn't consume the literal.
 ///
-/// *Complete version*: It will return `Err(ErrMode::Backtrack(InputError::new(_, ErrorKind::Slice)))`
+/// *Complete version*: It will return `Err(ErrMode::Backtrack(_))`
 /// if the literal wasn't met.
 ///
 /// *[Partial version][crate::_topic::partial]*: will return a `ErrMode::Incomplete(Needed::new(N))` if the input doesn't
@@ -913,67 +843,67 @@ where
 /// # Example
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::take_until;
 ///
-/// fn until_eof(s: &str) -> IResult<&str, &str> {
-///   take_until(0.., "eof").parse_peek(s)
+/// fn until_eof<'i>(s: &mut &'i str) -> ModalResult<&'i str> {
+///   take_until(0.., "eof").parse_next(s)
 /// }
 ///
-/// assert_eq!(until_eof("hello, worldeof"), Ok(("eof", "hello, world")));
-/// assert_eq!(until_eof("hello, world"), Err(ErrMode::Backtrack(InputError::new("hello, world", ErrorKind::Slice))));
-/// assert_eq!(until_eof(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Slice))));
-/// assert_eq!(until_eof("1eof2eof"), Ok(("eof2eof", "1")));
+/// assert_eq!(until_eof.parse_peek("hello, worldeof"), Ok(("eof", "hello, world")));
+/// assert!(until_eof.parse_peek("hello, world").is_err());
+/// assert!(until_eof.parse_peek("").is_err());
+/// assert_eq!(until_eof.parse_peek("1eof2eof"), Ok(("eof2eof", "1")));
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::ErrorKind, error::InputError, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
 /// use winnow::token::take_until;
 ///
-/// fn until_eof(s: Partial<&str>) -> IResult<Partial<&str>, &str> {
-///   take_until(0.., "eof").parse_peek(s)
+/// fn until_eof<'i>(s: &mut Partial<&'i str>) -> ModalResult<&'i str> {
+///   take_until(0.., "eof").parse_next(s)
 /// }
 ///
-/// assert_eq!(until_eof(Partial::new("hello, worldeof")), Ok((Partial::new("eof"), "hello, world")));
-/// assert_eq!(until_eof(Partial::new("hello, world")), Err(ErrMode::Incomplete(Needed::Unknown)));
-/// assert_eq!(until_eof(Partial::new("hello, worldeo")), Err(ErrMode::Incomplete(Needed::Unknown)));
-/// assert_eq!(until_eof(Partial::new("1eof2eof")), Ok((Partial::new("eof2eof"), "1")));
+/// assert_eq!(until_eof.parse_peek(Partial::new("hello, worldeof")), Ok((Partial::new("eof"), "hello, world")));
+/// assert_eq!(until_eof.parse_peek(Partial::new("hello, world")), Err(ErrMode::Incomplete(Needed::Unknown)));
+/// assert_eq!(until_eof.parse_peek(Partial::new("hello, worldeo")), Err(ErrMode::Incomplete(Needed::Unknown)));
+/// assert_eq!(until_eof.parse_peek(Partial::new("1eof2eof")), Ok((Partial::new("eof2eof"), "1")));
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// use winnow::token::take_until;
 ///
-/// fn until_eof(s: &str) -> IResult<&str, &str> {
-///   take_until(1.., "eof").parse_peek(s)
+/// fn until_eof<'i>(s: &mut &'i str) -> ModalResult<&'i str> {
+///   take_until(1.., "eof").parse_next(s)
 /// }
 ///
-/// assert_eq!(until_eof("hello, worldeof"), Ok(("eof", "hello, world")));
-/// assert_eq!(until_eof("hello, world"), Err(ErrMode::Backtrack(InputError::new("hello, world", ErrorKind::Slice))));
-/// assert_eq!(until_eof(""), Err(ErrMode::Backtrack(InputError::new("", ErrorKind::Slice))));
-/// assert_eq!(until_eof("1eof2eof"), Ok(("eof2eof", "1")));
-/// assert_eq!(until_eof("eof"), Err(ErrMode::Backtrack(InputError::new("eof", ErrorKind::Slice))));
+/// assert_eq!(until_eof.parse_peek("hello, worldeof"), Ok(("eof", "hello, world")));
+/// assert!(until_eof.parse_peek("hello, world").is_err());
+/// assert!(until_eof.parse_peek("").is_err());
+/// assert_eq!(until_eof.parse_peek("1eof2eof"), Ok(("eof2eof", "1")));
+/// assert!(until_eof.parse_peek("eof").is_err());
 /// ```
 ///
 /// ```rust
-/// # use winnow::{error::ErrMode, error::{InputError, ErrorKind}, error::Needed};
+/// # use winnow::{error::ErrMode, error::ContextError, error::Needed};
 /// # use winnow::prelude::*;
 /// # use winnow::Partial;
 /// use winnow::token::take_until;
 ///
-/// fn until_eof(s: Partial<&str>) -> IResult<Partial<&str>, &str> {
-///   take_until(1.., "eof").parse_peek(s)
+/// fn until_eof<'i>(s: &mut Partial<&'i str>) -> ModalResult<&'i str> {
+///   take_until(1.., "eof").parse_next(s)
 /// }
 ///
-/// assert_eq!(until_eof(Partial::new("hello, worldeof")), Ok((Partial::new("eof"), "hello, world")));
-/// assert_eq!(until_eof(Partial::new("hello, world")), Err(ErrMode::Incomplete(Needed::Unknown)));
-/// assert_eq!(until_eof(Partial::new("hello, worldeo")), Err(ErrMode::Incomplete(Needed::Unknown)));
-/// assert_eq!(until_eof(Partial::new("1eof2eof")), Ok((Partial::new("eof2eof"), "1")));
-/// assert_eq!(until_eof(Partial::new("eof")), Err(ErrMode::Backtrack(InputError::new(Partial::new("eof"), ErrorKind::Slice))));
+/// assert_eq!(until_eof.parse_peek(Partial::new("hello, worldeof")), Ok((Partial::new("eof"), "hello, world")));
+/// assert_eq!(until_eof.parse_peek(Partial::new("hello, world")), Err(ErrMode::Incomplete(Needed::Unknown)));
+/// assert_eq!(until_eof.parse_peek(Partial::new("hello, worldeo")), Err(ErrMode::Incomplete(Needed::Unknown)));
+/// assert_eq!(until_eof.parse_peek(Partial::new("1eof2eof")), Ok((Partial::new("eof2eof"), "1")));
+/// assert!(until_eof.parse_peek(Partial::new("eof")).is_err());
 /// ```
 #[inline(always)]
 pub fn take_until<Literal, Input, Error>(
@@ -1020,32 +950,32 @@ where
 fn take_until0_<T, I, Error: ParserError<I>, const PARTIAL: bool>(
     i: &mut I,
     t: T,
-) -> PResult<<I as Stream>::Slice, Error>
+) -> Result<<I as Stream>::Slice, Error>
 where
     I: StreamIsPartial,
     I: Stream + FindSlice<T>,
 {
     match i.find_slice(t) {
         Some(range) => Ok(i.next_slice(range.start)),
-        None if PARTIAL && i.is_partial() => Err(ErrMode::Incomplete(Needed::Unknown)),
-        None => Err(ErrMode::from_error_kind(i, ErrorKind::Slice)),
+        None if PARTIAL && i.is_partial() => Err(ParserError::incomplete(i, Needed::Unknown)),
+        None => Err(ParserError::from_input(i)),
     }
 }
 
 fn take_until1_<T, I, Error: ParserError<I>, const PARTIAL: bool>(
     i: &mut I,
     t: T,
-) -> PResult<<I as Stream>::Slice, Error>
+) -> Result<<I as Stream>::Slice, Error>
 where
     I: StreamIsPartial,
     I: Stream + FindSlice<T>,
 {
     match i.find_slice(t) {
-        None if PARTIAL && i.is_partial() => Err(ErrMode::Incomplete(Needed::Unknown)),
-        None => Err(ErrMode::from_error_kind(i, ErrorKind::Slice)),
+        None if PARTIAL && i.is_partial() => Err(ParserError::incomplete(i, Needed::Unknown)),
+        None => Err(ParserError::from_input(i)),
         Some(range) => {
             if range.start == 0 {
-                Err(ErrMode::from_error_kind(i, ErrorKind::Slice))
+                Err(ParserError::from_input(i))
             } else {
                 Ok(i.next_slice(range.start))
             }
@@ -1058,13 +988,13 @@ fn take_until_m_n_<T, I, Error: ParserError<I>, const PARTIAL: bool>(
     start: usize,
     end: usize,
     t: T,
-) -> PResult<<I as Stream>::Slice, Error>
+) -> Result<<I as Stream>::Slice, Error>
 where
     I: StreamIsPartial,
     I: Stream + FindSlice<T>,
 {
     if end < start {
-        return Err(ErrMode::assert(
+        return Err(ParserError::assert(
             i,
             "`occurrences` should be ascending, rather than descending",
         ));
@@ -1076,17 +1006,89 @@ where
             let end_offset = i.offset_at(end).unwrap_or_else(|_err| i.eof_offset());
             if start_offset.map(|s| range.start < s).unwrap_or(true) {
                 if PARTIAL && i.is_partial() {
-                    return Err(ErrMode::Incomplete(Needed::Unknown));
+                    return Err(ParserError::incomplete(i, Needed::Unknown));
                 } else {
-                    return Err(ErrMode::from_error_kind(i, ErrorKind::Slice));
+                    return Err(ParserError::from_input(i));
                 }
             }
             if end_offset < range.start {
-                return Err(ErrMode::from_error_kind(i, ErrorKind::Slice));
+                return Err(ParserError::from_input(i));
             }
             Ok(i.next_slice(range.start))
         }
-        None if PARTIAL && i.is_partial() => Err(ErrMode::Incomplete(Needed::Unknown)),
-        None => Err(ErrMode::from_error_kind(i, ErrorKind::Slice)),
+        None if PARTIAL && i.is_partial() => Err(ParserError::incomplete(i, Needed::Unknown)),
+        None => Err(ParserError::from_input(i)),
     }
+}
+
+/// Return the remaining input.
+///
+/// # Effective Signature
+///
+/// Assuming you are parsing a `&str` [Stream]:
+/// ```rust
+/// # use winnow::prelude::*;;
+/// pub fn rest<'i>(input: &mut &'i str) -> ModalResult<&'i str>
+/// # {
+/// #     winnow::token::rest.parse_next(input)
+/// # }
+/// ```
+///
+/// # Example
+///
+/// ```rust
+/// # use winnow::prelude::*;
+/// # use winnow::error::ContextError;
+/// use winnow::token::rest;
+/// assert_eq!(rest::<_,ContextError>.parse_peek("abc"), Ok(("", "abc")));
+/// assert_eq!(rest::<_,ContextError>.parse_peek(""), Ok(("", "")));
+/// ```
+#[inline]
+pub fn rest<Input, Error>(input: &mut Input) -> Result<<Input as Stream>::Slice, Error>
+where
+    Input: Stream,
+    Error: ParserError<Input>,
+{
+    trace("rest", move |input: &mut Input| Ok(input.finish())).parse_next(input)
+}
+
+/// Return the length of the remaining input.
+///
+/// <div class="warning">
+///
+/// Note: this does not advance the [`Stream`]
+///
+/// </div>
+///
+/// # Effective Signature
+///
+/// Assuming you are parsing a `&str` [Stream]:
+/// ```rust
+/// # use winnow::prelude::*;;
+/// pub fn rest_len(input: &mut &str) -> ModalResult<usize>
+/// # {
+/// #     winnow::token::rest_len.parse_next(input)
+/// # }
+/// ```
+///
+/// # Example
+///
+/// ```rust
+/// # use winnow::prelude::*;
+/// # use winnow::error::ContextError;
+/// use winnow::token::rest_len;
+/// assert_eq!(rest_len::<_,ContextError>.parse_peek("abc"), Ok(("abc", 3)));
+/// assert_eq!(rest_len::<_,ContextError>.parse_peek(""), Ok(("", 0)));
+/// ```
+#[inline]
+pub fn rest_len<Input, Error>(input: &mut Input) -> Result<usize, Error>
+where
+    Input: Stream,
+    Error: ParserError<Input>,
+{
+    trace("rest_len", move |input: &mut Input| {
+        let len = input.eof_offset();
+        Ok(len)
+    })
+    .parse_next(input)
 }

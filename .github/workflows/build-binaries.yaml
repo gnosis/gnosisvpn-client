@@ -22,7 +22,7 @@ on:
       runner:
         type: choice
         options:
-          - self-hosted-hoprnet-big
+          - ubuntu-latest
           - macos-13
           - macos-14
         required: true
@@ -45,7 +45,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.action != 'closed' && contains(github.event.pull_request.labels.*.name, format('binary:{0}', inputs.architecture))) || (github.event_name == 'pull_request' && github.event.action == 'closed')
     runs-on: ${{ github.event.inputs.runner || inputs.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Set environment variables
         id: vars
@@ -70,14 +70,14 @@ jobs:
           ref: ${{ steps.vars.outputs.branch }}
       - name: Install Nix
         uses: cachix/install-nix-action@v29
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          nix_path: nixpkgs=channel:nixos-24.05
+        # with:
+        #   github_access_token: ${{ secrets.GITHUB_TOKEN }}
+        #   nix_path: nixpkgs=channel:nixos-24.11
       - name: Use Nix Cache
         uses: cachix/cachix-action@v15
         with:
           name: gnosis-vpn-client
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          # authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner
       - name: Get version
@@ -108,17 +108,17 @@ jobs:
             mv binaries/gnosis_vpn-${{ steps.vars.outputs.architecture}} binaries/gnosis_vpn-${{ steps.vars.outputs.architecture}}-${{ steps.version.outputs.binary_version }}
             mv binaries/gnosis_vpn-ctl-${{ steps.vars.outputs.architecture}} binaries/gnosis_vpn-ctl-${{ steps.vars.outputs.architecture}}-${{ steps.version.outputs.binary_version }}
           fi
-      - name: Setup GCP
-        if: steps.version.outputs.publish_type == 'artifact-registry' || steps.version.outputs.publish_type == 'github'
-        uses: hoprnet/hopr-workflows/actions/setup-gcp@master
-        with:
-          google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-          install-sdk: "true"
-      - name: Publish Artifact registry
-        if: steps.version.outputs.publish_type == 'artifact-registry' || steps.version.outputs.publish_type == 'github'
-        run: |
-          gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis_vpn --source=binaries/gnosis_vpn-${{ steps.vars.outputs.architecture}}
-          gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis_vpn --source=binaries/gnosis_vpn-ctl-${{ steps.vars.outputs.architecture}}
+      # - name: Setup GCP
+      #   if: steps.version.outputs.publish_type == 'artifact-registry' || steps.version.outputs.publish_type == 'github'
+      #   uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+      #   with:
+      #     google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+      #     install-sdk: "true"
+      # - name: Publish Artifact registry
+      #   if: steps.version.outputs.publish_type == 'artifact-registry' || steps.version.outputs.publish_type == 'github'
+      #   run: |
+      #     gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis_vpn --source=binaries/gnosis_vpn-${{ steps.vars.outputs.architecture}}
+      #     gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis_vpn --source=binaries/gnosis_vpn-ctl-${{ steps.vars.outputs.architecture}}
       - name: Upload ${{ steps.vars.outputs.architecture }} binaries
         if: steps.version.outputs.publish_type == 'workflow'
         uses: actions/upload-artifact@v4

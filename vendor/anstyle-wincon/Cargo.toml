@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.65.0"
+rust-version = "1.66.0"
 name = "anstyle-wincon"
-version = "3.0.4"
+version = "3.0.7"
 build = false
 include = [
     "build.rs",
@@ -25,6 +25,7 @@ include = [
     "benches/**/*",
     "examples/**/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -47,6 +48,7 @@ all-features = true
 rustdoc-args = [
     "--cfg",
     "docsrs",
+    "--generate-link-to-definition",
 ]
 targets = ["x86_64-pc-windows-msvc"]
 
@@ -103,8 +105,11 @@ version = "1.0.0"
 [dev-dependencies.lexopt]
 version = "0.3.0"
 
+[target."cfg(windows)".dependencies.once_cell]
+version = "1.20.2"
+
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.52.0"
+version = "0.59.0"
 features = [
     "Win32_System_Console",
     "Win32_Foundation",
@@ -137,7 +142,6 @@ inconsistent_struct_constructor = "warn"
 inefficient_to_string = "warn"
 infinite_loop = "warn"
 invalid_upcast_comparisons = "warn"
-items_after_statements = "warn"
 large_digit_groups = "warn"
 large_stack_arrays = "warn"
 large_types_passed_by_value = "warn"
@@ -145,7 +149,6 @@ let_and_return = "allow"
 linkedlist = "warn"
 lossy_float_literal = "warn"
 macro_use_imports = "warn"
-match_wildcard_for_single_variants = "warn"
 mem_forget = "warn"
 mutex_integer = "warn"
 needless_continue = "warn"
@@ -157,10 +160,10 @@ rc_mutex = "warn"
 redundant_feature_names = "warn"
 ref_option_ref = "warn"
 rest_pat_in_fully_bound_structs = "warn"
+result_large_err = "allow"
 same_functions_in_if_condition = "warn"
 self_named_module_files = "warn"
 semicolon_if_nothing_returned = "warn"
-single_match_else = "warn"
 str_to_string = "warn"
 string_add = "warn"
 string_add_assign = "warn"
@@ -168,14 +171,18 @@ string_lit_as_bytes = "warn"
 string_to_string = "warn"
 todo = "warn"
 trait_duplication_in_bounds = "warn"
+uninlined_format_args = "warn"
 verbose_file_reads = "warn"
 wildcard_imports = "warn"
 zero_sized_map_values = "warn"
 
 [lints.rust]
-rust_2018_idioms = "warn"
 unreachable_pub = "warn"
 unsafe_op_in_unsafe_fn = "warn"
 unused_lifetimes = "warn"
 unused_macro_rules = "warn"
 unused_qualifications = "warn"
+
+[lints.rust.rust_2018_idioms]
+level = "warn"
+priority = -1

@@ -1,5 +1,15 @@
 # Releases
 
+## 2.7.1 (2025-01-19)
+
+- Added `#[track_caller]` to functions that may panic.
+- Improved memory reservation for `insert_entry`.
+
+## 2.7.0 (2024-11-30)
+
+- Added methods `Entry::insert_entry` and `VacantEntry::insert_entry`, returning
+  an `OccupiedEntry` after insertion.
+
 ## 2.6.0 (2024-10-01)
 
 - Implemented `Clone` for `map::IntoIter` and `set::IntoIter`.

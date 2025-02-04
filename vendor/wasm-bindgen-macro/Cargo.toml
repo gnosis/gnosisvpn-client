@@ -13,13 +13,14 @@
 edition = "2021"
 rust-version = "1.57"
 name = "wasm-bindgen-macro"
-version = "0.2.95"
+version = "0.2.100"
 authors = ["The wasm-bindgen Developers"]
 build = false
 include = [
     "/LICENSE-*",
     "/src",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -42,17 +43,18 @@ proc-macro = true
 version = "1.0"
 
 [dependencies.wasm-bindgen-macro-support]
-version = "=0.2.95"
+version = "=0.2.100"
 
 [dev-dependencies.trybuild]
 version = "1.0"
 
 [features]
-spans = ["wasm-bindgen-macro-support/spans"]
 strict-macro = ["wasm-bindgen-macro-support/strict-macro"]
 xxx_debug_only_print_generated_code = []
 
-[lints.rust.unexpected_cfgs]
-level = "warn"
-priority = 0
-check-cfg = ["cfg(wasm_bindgen_unstable_test_coverage)"]
+[lints.clippy]
+large_enum_variant = "allow"
+new_without_default = "allow"
+overly_complex_bool_expr = "allow"
+too_many_arguments = "allow"
+type_complexity = "allow"

@@ -80,12 +80,7 @@ pub fn open(
     let sender = sender.clone();
     let client = client.clone();
     thread::spawn(move || {
-        tracing::debug!(
-            "post open session [headers: {:?}, body: {:?}, url: {:?}",
-            headers,
-            json,
-            url
-        );
+        tracing::debug!(?headers, body = ?json, ?url, "post open session");
 
         let fetch_res = client
             .post(url)
@@ -218,7 +213,7 @@ impl Session {
         let client = client.clone();
 
         thread::spawn(move || {
-            tracing::debug!("delete session [headers: {:?}, url: {:?}", headers, url);
+            tracing::debug!(?headers, ?url, "delete session");
 
             let fetch_res = client
                 .delete(url)

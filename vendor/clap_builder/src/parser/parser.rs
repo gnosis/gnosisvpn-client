@@ -50,9 +50,36 @@ impl<'cmd> Parser<'cmd> {
         &mut self,
         matcher: &mut ArgMatcher,
         raw_args: &mut clap_lex::RawArgs,
-        mut args_cursor: clap_lex::ArgCursor,
+        args_cursor: clap_lex::ArgCursor,
     ) -> ClapResult<()> {
         debug!("Parser::get_matches_with");
+
+        ok!(self.parse(matcher, raw_args, args_cursor).map_err(|err| {
+            if self.cmd.is_ignore_errors_set() {
+                #[cfg(feature = "env")]
+                let _ = self.add_env(matcher);
+                let _ = self.add_defaults(matcher);
+            }
+            err
+        }));
+        ok!(self.resolve_pending(matcher));
+
+        #[cfg(feature = "env")]
+        ok!(self.add_env(matcher));
+        ok!(self.add_defaults(matcher));
+
+        Validator::new(self.cmd).validate(matcher)
+    }
+
+    // The actual parsing function
+    #[allow(clippy::cognitive_complexity)]
+    pub(crate) fn parse(
+        &mut self,
+        matcher: &mut ArgMatcher,
+        raw_args: &mut clap_lex::RawArgs,
+        mut args_cursor: clap_lex::ArgCursor,
+    ) -> ClapResult<()> {
+        debug!("Parser::parse");
         // Verify all positional assertions pass
 
         let mut subcmd_name: Option<String> = None;
@@ -436,11 +463,7 @@ impl<'cmd> Parser<'cmd> {
                     matches: sc_m.into_inner(),
                 });
 
-                ok!(self.resolve_pending(matcher));
-                #[cfg(feature = "env")]
-                ok!(self.add_env(matcher));
-                ok!(self.add_defaults(matcher));
-                return Validator::new(self.cmd).validate(parse_state, matcher);
+                return Ok(());
             } else {
                 // Start error processing
                 let _ = self.resolve_pending(matcher);
@@ -474,11 +497,7 @@ impl<'cmd> Parser<'cmd> {
             ok!(self.parse_subcommand(&sc_name, matcher, raw_args, args_cursor, keep_state));
         }
 
-        ok!(self.resolve_pending(matcher));
-        #[cfg(feature = "env")]
-        ok!(self.add_env(matcher));
-        ok!(self.add_defaults(matcher));
-        Validator::new(self.cmd).validate(parse_state, matcher)
+        Ok(())
     }
 
     fn match_arg_error(
@@ -1522,7 +1541,7 @@ impl<'cmd> Parser<'cmd> {
 }
 
 // Error, Help, and Version Methods
-impl<'cmd> Parser<'cmd> {
+impl Parser<'_> {
     /// Is only used for the long flag(which is the only one needs fuzzy searching)
     fn did_you_mean_error(
         &mut self,
@@ -1552,9 +1571,11 @@ impl<'cmd> Parser<'cmd> {
         );
 
         // Add the arg to the matches to build a proper usage string
-        if let Some((name, _)) = did_you_mean.as_ref() {
-            if let Some(arg) = self.cmd.get_keymap().get(&name.as_ref()) {
-                self.start_custom_arg(matcher, arg, ValueSource::CommandLine);
+        if !self.cmd.is_ignore_errors_set() {
+            if let Some((name, _)) = did_you_mean.as_ref() {
+                if let Some(arg) = self.cmd.get_keymap().get(&name.as_ref()) {
+                    self.start_custom_arg(matcher, arg, ValueSource::CommandLine);
+                }
             }
         }
         let did_you_mean = did_you_mean.map(|(arg, cmd)| (format!("--{arg}"), cmd));

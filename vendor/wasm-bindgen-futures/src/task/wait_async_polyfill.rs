@@ -3,6 +3,8 @@
 //! and ported to Rust
 //!
 
+#![allow(clippy::incompatible_msrv)]
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -36,33 +38,30 @@
  * when possible.  The worker communicates with its parent using postMessage.
  */
 
+use alloc::vec;
+use alloc::vec::Vec;
+use core::cell::RefCell;
+use core::sync::atomic::AtomicI32;
 use js_sys::{Array, Promise};
-use std::cell::RefCell;
-use std::sync::atomic::AtomicI32;
 use wasm_bindgen::prelude::*;
 use web_sys::{MessageEvent, Worker};
 
-thread_local! {
-    static HELPERS: RefCell<Vec<Worker>> = RefCell::new(vec![]);
-}
+#[thread_local]
+static HELPERS: RefCell<Vec<Worker>> = RefCell::new(vec![]);
 
 fn alloc_helper() -> Worker {
-    HELPERS.with(|helpers| {
-        if let Some(helper) = helpers.borrow_mut().pop() {
-            return helper;
-        }
+    if let Some(helper) = HELPERS.borrow_mut().pop() {
+        return helper;
+    }
 
-        let worker_url = wasm_bindgen::link_to!(module = "/src/task/worker.js");
-        Worker::new(&worker_url).unwrap_or_else(|js| wasm_bindgen::throw_val(js))
-    })
+    let worker_url = wasm_bindgen::link_to!(module = "/src/task/worker.js");
+    Worker::new(&worker_url).unwrap_or_else(|js| wasm_bindgen::throw_val(js))
 }
 
 fn free_helper(helper: Worker) {
-    HELPERS.with(move |helpers| {
-        let mut helpers = helpers.borrow_mut();
-        helpers.push(helper.clone());
-        helpers.truncate(10); // random arbitrary limit chosen here
-    });
+    let mut helpers = HELPERS.borrow_mut();
+    helpers.push(helper.clone());
+    helpers.truncate(10); // random arbitrary limit chosen here
 }
 
 pub fn wait_async(ptr: &AtomicI32, value: i32) -> Promise {

@@ -387,12 +387,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "doc-comment"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
-
-[[package]]
 name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -421,9 +415,9 @@ dependencies = [
 
 [[package]]
 name = "escargot"
-version = "0.5.7"
+version = "0.5.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5584ba17d7ab26a8a7284f13e5bd196294dd2f2d79773cff29b9e9edef601a6"
+checksum = "05a3ac187a16b5382fef8c69fd1bad123c67b7cf3932240a2d43dcdd32cded88"
 dependencies = [
  "log",
  "once_cell",
@@ -1039,9 +1033,9 @@ checksum = "420acb44afdae038210c99e69aae24109f32f15500aa708e81d46c9f29d55fcf"
 
 [[package]]
 name = "snapbox"
-version = "0.6.5"
+version = "0.6.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ad8c7be18cc9ec7f4d7948ad6b9df0e04fc649663e3c0ed59f304ed17ca69e9"
+checksum = "96dcfc4581e3355d70ac2ee14cfdf81dce3d85c85f1ed9e2c1d3013f53b3436b"
 dependencies = [
  "anstream 0.6.14",
  "anstyle",
@@ -1053,9 +1047,9 @@ dependencies = [
 
 [[package]]
 name = "snapbox-macros"
-version = "0.3.9"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f4c14672714436c09254801c934b203196a51182a5107fb76591c7cc56424d"
+checksum = "16569f53ca23a41bb6f62e0a5084aa1661f4814a67fa33696a79073e03a664af"
 dependencies = [
  "anstream 0.6.14",
 ]
@@ -1540,7 +1534,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.6.20"
+version = "0.7.0"
 dependencies = [
  "annotate-snippets",
  "anstream 0.3.2",
@@ -1549,7 +1543,6 @@ dependencies = [
  "automod",
  "circular",
  "criterion",
- "doc-comment",
  "is-terminal",
  "lexopt",
  "memchr",

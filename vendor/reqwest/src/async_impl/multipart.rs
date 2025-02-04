@@ -270,8 +270,9 @@ impl Part {
         let len = file.metadata().await.map(|m| m.len()).ok();
         let field = match len {
             Some(len) => Part::stream_with_length(file, len),
-            None => Part::stream(file)
-        }.mime(mime);
+            None => Part::stream(file),
+        }
+        .mime(mime);
 
         Ok(if let Some(file_name) = file_name {
             field.file_name(file_name)
@@ -416,7 +417,7 @@ impl<P: PartProps> FormParts<P> {
                 _ => return None,
             }
         }
-        // If there is a at least one field there is a special boundary for the very last field.
+        // If there is at least one field there is a special boundary for the very last field.
         if !self.fields.is_empty() {
             length += 2 + self.boundary().len() as u64 + 4
         }

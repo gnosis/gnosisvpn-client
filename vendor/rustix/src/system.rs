@@ -46,7 +46,7 @@ use c::c_int;
 /// [OpenBSD]: https://man.openbsd.org/uname.3
 /// [DragonFly BSD]: https://man.dragonflybsd.org/?command=uname&section=3
 /// [illumos]: https://illumos.org/man/2/uname
-/// [glibc]: https://www.gnu.org/software/libc/manual/html_node/Platform-Type.html
+/// [glibc]: https://sourceware.org/glibc/manual/latest/html_node/Platform-Type.html
 #[doc(alias = "gethostname")]
 #[inline]
 pub fn uname() -> Uname {
@@ -166,6 +166,29 @@ pub fn sysinfo() -> Sysinfo {
 #[inline]
 pub fn sethostname(name: &[u8]) -> io::Result<()> {
     backend::system::syscalls::sethostname(name)
+}
+
+/// `setdomain(name)`—Sets the system NIS domain name.
+///
+/// # References
+///  - [Linux]
+///  - [FreeBSD]
+///
+/// [Linux]: https://man7.org/linux/man-pages/man2/setdomainname.2.html
+/// [FreeBSD]: https://man.freebsd.org/cgi/man.cgi?query=setdomainname&sektion=3
+#[cfg(not(any(
+    target_os = "emscripten",
+    target_os = "espidf",
+    target_os = "haiku",
+    target_os = "illumos",
+    target_os = "redox",
+    target_os = "solaris",
+    target_os = "vita",
+    target_os = "wasi"
+)))]
+#[inline]
+pub fn setdomainname(name: &[u8]) -> io::Result<()> {
+    backend::system::syscalls::setdomainname(name)
 }
 
 /// Reboot command for use with [`reboot`].

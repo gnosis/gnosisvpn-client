@@ -11,14 +11,20 @@
 
 [package]
 edition = "2021"
-rust-version = "1.63"
+rust-version = "1.70"
 name = "tokio-rustls"
-version = "0.26.0"
+version = "0.26.1"
+build = false
 exclude = [
     "/.github",
     "/examples",
     "/scripts",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Asynchronous TLS/SSL streams for Tokio using Rustls."
 homepage = "https://github.com/rustls/tokio-rustls"
 documentation = "https://docs.rs/tokio-rustls"
@@ -28,15 +34,35 @@ categories = [
     "cryptography",
     "network-programming",
 ]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rustls/tokio-rustls"
 
-[dependencies.pki-types]
-version = "1"
-package = "rustls-pki-types"
+[lib]
+name = "tokio_rustls"
+path = "src/lib.rs"
+
+[[test]]
+name = "badssl"
+path = "tests/badssl.rs"
+
+[[test]]
+name = "certs"
+path = "tests/certs/main.rs"
+
+[[test]]
+name = "early-data"
+path = "tests/early-data.rs"
+
+[[test]]
+name = "test"
+path = "tests/test.rs"
+
+[[test]]
+name = "utils"
+path = "tests/utils.rs"
 
 [dependencies.rustls]
-version = "0.23"
+version = "0.23.15"
 features = ["std"]
 default-features = false
 
@@ -52,8 +78,9 @@ version = "0.3.1"
 [dev-dependencies.lazy_static]
 version = "1.1"
 
-[dev-dependencies.rustls-pemfile]
-version = "2"
+[dev-dependencies.rcgen]
+version = "0.13"
+features = ["pem"]
 
 [dev-dependencies.tokio]
 version = "1.0"

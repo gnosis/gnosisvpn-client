@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.60.0"
 name = "schannel"
-version = "0.1.26"
+version = "0.1.27"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Steffen Butzer <steffen.butzer@outlook.com>",
