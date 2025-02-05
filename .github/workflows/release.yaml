@@ -45,21 +45,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      # - name: Setup GCP
-      #   id: gcp
-      #   uses: hoprnet/hopr-workflows/actions/setup-gcp@master
-      #   with:
-      #     google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-      #     install-sdk: "true"
+      - name: Setup GCP
+        id: gcp
+        uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+        with:
+          google-credentials: ${{ secrets.GCP_SA_GITHUB_ACTIONS }}
+          install-sdk: "true"
       - name: Install Nix
         uses: cachix/install-nix-action@v29
-        # with:
-        #   github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Use Nix Cache
         uses: cachix/cachix-action@v15
         with:
           name: gnosis-vpn-client
-          # authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner
       - name: Setup environment variables
@@ -75,11 +72,12 @@ jobs:
       - name: Publish binaries
         run: |
           architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux" "aarch64-darwin" "x86_64-darwin" )
-          echo $(ls -la binaries)
-          echo $PWD
           mkdir -p binaries
           for architecture in "${architectures[@]}"; do
-              echo "Uploading binary $PWD/binaries/gnosis_vpn-${architecture}"
+              echo "Downloading from GCP binary gnosis_vpn-${architecture}"
+              gcloud artifacts files download --project=gnosisvpn-production --location=europe-west3 --repository=rust-binaries gnosis_vpn:${{ steps.environment.outputs.release_version }}:gnosis_vpn-${architecture} --destination=./binaries --local-filename=gnosis_vpn-${architecture}
+              gcloud artifacts files download --project=gnosisvpn-production --location=europe-west3 --repository=rust-binaries gnosis_vpn:${{ steps.environment.outputs.release_version }}:gnosis_vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis_vpn-ctl-${architecture}
+              echo "Uploading binary gnosis_vpn-${architecture}"
               gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-${architecture}" --clobber
               gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-ctl-${architecture}" --clobber
           done
@@ -133,14 +131,3 @@ jobs:
           new_branch: main
           message: "Bump to version ${{ steps.bump.outputs.bump_version }}"
           pathspec_error_handling: exitImmediately
-    # - name: Notify new release
-    #   uses: zulip/github-actions-zulip/send-message@v1
-    #   with:
-    #     api-key: ${{ secrets.ZULIP_API_KEY }}
-    #     email: ${{ secrets.ZULIP_EMAIL }}
-    #     organization-url: "https://hopr.zulipchat.com"
-    #     type: "stream"
-    #     to: "Releases"
-    #     topic: "main"
-    #     content: |-
-    #       I'm thrilled to inform the new **gnosis_vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.
