@@ -92,9 +92,11 @@ services:
 3. Go to the **Network** tab and locate the **Public Port Mapping** section.
 4. Add a new port entry by clicking on **New port +**.
 5. Configure the following settings:
-   - **HOST PORT**: `1422`
-   - **PACKAGE PORT NUMBER**: `1422`
-   - **PROTOCOL**: Select **UDP**.
+
+- **HOST PORT**: `1422`
+- **PACKAGE PORT NUMBER**: `1422`
+- **PROTOCOL**: Select **UDP**.
+
 6. Click **Update Port Mappings** to save your changes.
 
 ### 6. Download the latest binary file [MacOS]
@@ -200,11 +202,15 @@ The binary file should tell you which setting parameter might be wrong.
 ### 11. Update the newly created WireGuard tunnel and launch WireGuard [MacOS]
 
 In the WireGuard app, edit the tunnel you created.
+Leave existing content including the **PrvateKey** as is and paste this additional content as marked in the comments.
 Replace placeholders `<...>` with the actual values as documented.
 
 ```conf
+# Leave this content as is in your tunnel configuration
 [Interface]
 PrivateKey = <Generated automatic by WireGuard app>
+
+# NOTE: Copy paste from here
 ListenPort = 51820
 Address = <device IP> # received via drop location, e.g.: 20.0.0.5/32
 
@@ -224,9 +230,11 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 1. Open Network Connection Settings by navigating into Settings → General → Network Settings or search "proxy" in the settings search bar and click on the "Settings" button.
 2. Choose manual proxy configuration and enter:
-   - SOCKS Host: `20.0.0.1`
-   - Port: `3128`
-   - Socks v5
+
+- SOCKS Host: `20.0.0.1`
+- Port: `3128`
+- Socks v5
+
 3. Clik "OK" to save the settings.
 
 Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) through GnosisVPN.
