@@ -212,12 +212,12 @@ PrivateKey = <Generated automatic by WireGuard app>
 
 # NOTE: Copy paste from here
 ListenPort = 51820
-Address = <device IP> # received via drop location, e.g.: 20.0.0.5/32
+Address = <device IP> # received via drop location, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
 Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
-AllowedIPs = 20.0.0.0/24
+AllowedIPs = 10.128.0.0/24
 PersistentKeepalive = 30
 ```
 
@@ -231,7 +231,7 @@ The easiest way to do this is to change the Firefox proxy settings.
 1. Open Network Connection Settings by navigating into Settings → General → Network Settings or search "proxy" in the settings search bar and click on the "Settings" button.
 2. Choose manual proxy configuration and enter:
 
-- SOCKS Host: `20.0.0.1`
+- SOCKS Host: `10.128.0.1`
 - Port: `3128`
 - Socks v5
 
@@ -426,12 +426,12 @@ Replace placeholders `<...>` with the actual values as documented.
 [Interface]
 PrivateKey = <Generated automatic by WireGuard app>
 ListenPort = 51820
-Address = <device IP> # received via drop location, e.g.: 20.0.0.5/32
+Address = <device IP> # received via drop location, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
 Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
-AllowedIPs = 20.0.0.0/24
+AllowedIPs = 10.128.0.0/24
 PersistentKeepalive = 30
 ```
 
@@ -445,7 +445,7 @@ The easiest way to do this is to change the Firefox proxy settings.
 1. Open Network Connection Settings by navigating into Settings → General → Network Settings or search "proxy" in the settings search bar and click on the "Settings" button.
 2. Choose manual proxy configuration and enter:
 
-- SOCKS Host: `20.0.0.1`
+- SOCKS Host: `10.128.0.1`
 - Port: `3128`
 - Socks v5
 
