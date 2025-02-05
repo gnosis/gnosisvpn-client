@@ -632,7 +632,7 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "gnosis_vpn"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "anyhow",
  "clap",
@@ -655,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "gnosis_vpn-ctl"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "bpaf",
  "gnosis_vpn-lib",
@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "gnosis_vpn-lib"
-version = "0.7.3"
+version = "0.7.5"
 dependencies = [
  "bincode",
  "directories",
