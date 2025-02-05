@@ -24,6 +24,8 @@ jobs:
         uses: cachix/cachix-action@v15
         with:
           name: gnosis-vpn-client
+        env:
+          USER: runner
       - name: Build
         run: nix build .#gnosisvpn -L
       - name: Lint and formatting check
