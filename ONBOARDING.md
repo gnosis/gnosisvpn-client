@@ -165,7 +165,7 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
-5. Enter funding amount (recommended: **10 wxHOPR**) and click **Open Channel**.
+5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
 ### 10. Launch the GnosisVPN binary file [macOS]
@@ -390,7 +390,7 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
-5. Enter funding amount (recommended: **10 wxHOPR**) and click **Open Channel**.
+5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
