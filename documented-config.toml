@@ -22,7 +22,7 @@ version = 1
 # # # this is NOT your API port which must be specified in the `endpoint` field
 # # # this port is an addiontal port used to establish the tunnel connection on your hoprd node
 # # # in general if you want to establish a connection on specific port, just provide this port here
-# # internal_connection_port = 50005
+# # internal_connection_port = 1422
 
 ###
 ## connection section - connection configuration parameters
@@ -37,7 +37,7 @@ version = 1
 # # # [OPTIONAL] listen host - specify internal listen host on hoprd node
 # # # if you have a firewall running and can only use static ports you need to adjust this setting
 # # # it's best to only use `internal_port` of `[hoprd node]` section - if listen_host is enabled `internal_port` is ignored
-# # listen_host = ":50005"
+# # listen_host = ":1422"
 
 ###
 ## [OPTIONAL] connection path section - limit auto pathing of hoprd
