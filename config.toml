@@ -11,7 +11,7 @@ version = 1
 endpoint = "http://123.456.7.89:3002"
 api_token = "<hoprd node API token>"
 
-internal_connection_port = 50005
+internal_connection_port = 1422
 
 # copy this section from https://gnosisvpn.com/servers
 [connection]

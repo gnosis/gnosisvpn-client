@@ -22,17 +22,20 @@ pub enum Error {
     WgError(String),
 }
 
+#[derive(Debug)]
 pub struct ConnectSession {
     pub interface: InterfaceInfo,
     pub peer: PeerInfo,
 }
 
+#[derive(Debug)]
 pub struct InterfaceInfo {
     pub private_key: String,
     pub address: String,
     pub allowed_ips: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct PeerInfo {
     pub public_key: String,
     pub endpoint: String,

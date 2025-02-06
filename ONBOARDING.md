@@ -22,19 +22,19 @@ Outline:
 
 Please select your operating system to begin:
 
-- [Instructions for MacOS](#instructions-for-macos)
+- [Instructions for macOS](#instructions-for-macos)
 - [Instructions for Linux](#instructions-for-linux)
 
 ---
 
-## Instructions for MacOS
+## Instructions for macOS
 
-### 1. Generate Wireguard public key [MacOS]
+### 1. Generate Wireguard public key [macOS]
 
 1. Download the [WireGuard app](https://apps.apple.com/us/app/wireguard/id1451685025) from the Mac App Store.
 2. Launch WireGuard, create an **Empty tunnel**, name it, and save. Copy the public key of the newly created tunnel.
 
-### 2. Prepare secure input to receive assigned device IP [MacOS]
+### 2. Prepare secure input to receive assigned device IP [macOS]
 
 Create a secure input location where you will receive your assigned device IP.
 
@@ -44,18 +44,18 @@ Create a secure input location where you will receive your assigned device IP.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
-### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [MacOS]
+### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [macOS]
 
 Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get your assigned device IP [MacOS]
+### 4. Wait until you get your assigned device IP [macOS]
 
 After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
 If you provided a communication channel (email/telegram) in the onboarding form, you will be notified.
 Otherwise, you will just have to check your **rlim.com** document yourself after a reasonable amount of time.
 
-### 5. Configure your hoprd node to allow GnosisVPN connections [MacOS]
+### 5. Configure your hoprd node to allow GnosisVPN connections [macOS]
 
 GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: `1422`).
 
@@ -68,11 +68,11 @@ This means you need to configure docker to forward that port.
 
 Depending on your setup this can be done in different ways.
 
-#### Hoprd for Docker [MacOS]
+#### Hoprd for Docker [macOS]
 
 Update the run command to inlude the port forwarding: `docker run ... -p 1422:1422/udp ...`.
 
-#### Hoprd for Docker Compose [MacOS]
+#### Hoprd for Docker Compose [macOS]
 
 Locate `docker-compose.yaml` update update the `ports:` section of `hoprd:`:
 
@@ -85,7 +85,7 @@ services:
       - "1422:1422/udp"
 ```
 
-#### Hoprd for Dappnode [MacOS]
+#### Hoprd for Dappnode [macOS]
 
 1. Connect to your Dappnode.
 2. Navigate to the **HOPR package**.
@@ -99,7 +99,7 @@ services:
 
 6. Click **Update Port Mappings** to save your changes.
 
-### 6. Download the latest binary file [MacOS]
+### 6. Download the latest binary file [macOS]
 
 Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
 Choose the binary file that matches your system:
@@ -112,7 +112,7 @@ Choose the binary file that matches your system:
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
 
-### 7. Configure GnosisVPN client - hoprd node [MacOS]
+### 7. Configure GnosisVPN client - hoprd node [macOS]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
 2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
@@ -131,7 +131,7 @@ internal_connection_port = 1422
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
-### 8. Configure GnosisVPN client - exit location [MacOS]
+### 8. Configure GnosisVPN client - exit location [macOS]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the settings into your `config.toml`:
@@ -149,7 +149,7 @@ intermediates = [ `<relay node peer id>` ]
 
 Save and close the configuration file.
 
-### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [MacOS]
+### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [macOS]
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
@@ -159,16 +159,16 @@ Look at the **Strategies** section and ensure that `!AutoFunding` is **not** ena
 To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
 Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
 
-#### Steps to Open a Payment Channel [MacOS]
+#### Steps to Open a Payment Channel [macOS]
 
 1. Connect to your node via **Admin UI**.
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
-5. Enter funding amount (recommended: **10 wxHOPR**) and click **Open Channel**.
+5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
-### 10. Launch the GnosisVPN binary file [MacOS]
+### 10. Launch the GnosisVPN binary file [macOS]
 
 1. Return to your downloaded binary file and make it executable by executing the following command in your terminal:
 
@@ -194,12 +194,12 @@ sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin`
 3. Because of macOS security settings, you will see a message that says binary file “cannot be opened because the developer cannot be verified”.
    Click "Cancel" or "Done", then open System Settings → Privacy & Security, scroll down to Security, and find the blocked binary file. Click "Allow Anyway".
 
-4. In your terminal, run the command to start the binary file again. MacOS will prompt you one more time to confirm if you want to open it. Click "Open" or "Open anyway".
+4. In your terminal, run the command to start the binary file again. macOS will prompt you one more time to confirm if you want to open it. Click "Open" or "Open anyway".
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
 The binary file should tell you which setting parameter might be wrong.
 
-### 11. Update the newly created WireGuard tunnel and launch WireGuard [MacOS]
+### 11. Update the newly created WireGuard tunnel and launch WireGuard [macOS]
 
 In the WireGuard app, edit the tunnel you created.
 Leave existing content including the **PrvateKey** as is and paste this additional content as marked in the comments.
@@ -223,7 +223,7 @@ PersistentKeepalive = 30
 
 Now you can activate this interface to establish a connection.
 
-### 12. Use GnosisVPN connection to browse the internet [MacOS]
+### 12. Use GnosisVPN connection to browse the internet [macOS]
 
 For now we only allow SOCKS v5 proxy connections tunneled through GnosisVPN.
 The easiest way to do this is to change the Firefox proxy settings.
@@ -390,7 +390,7 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
-5. Enter funding amount (recommended: **10 wxHOPR**) and click **Open Channel**.
+5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
