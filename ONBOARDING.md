@@ -13,11 +13,11 @@ The following 12 step process will guide you through these topics:
 
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure your hopd node** to allow a GnosisVPN connection.
-- **Download the binary file** and run it with several env var parameters.
 - **Configure GnosisVPN client** using information from three separate sources:
   1. Your hoprd node credentials
   2. Your assigned WireGuard IP
   3. Your chosen exit location
+- **Download the binary file** and run it with several env var parameters.
 - **Configure Firefox proxy settings** to use the GnosisVPN connection.
 
 Please select your operating system to begin:
@@ -104,22 +104,7 @@ services:
 
 6. Click **Update Port Mappings** to save your changes.
 
-### 6. Download the latest binary file [macOS]
-
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
-Choose the binary file that matches your system:
-
-| System                | Binary file                 |
-| --------------------- | --------------------------- |
-| macOS with ARM chip   | `gnosis_vpn-aarch64-darwin` |
-| macOS with Intel chip | `gnosis_vpn-x86_64-darwin`  |
-
-Ignore the `*-ctl-*` sibling files.
-We do not need them for now.
-
-In the following steps, we assume you downloaded `gnosis_vpn-aarch64-darwin` to keep the instructions consistent.
-
-### 7. Configure GnosisVPN client - hoprd node [macOS]
+### 6. Configure GnosisVPN client - hoprd node [macOS]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
 2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
@@ -136,7 +121,7 @@ internal_connection_port = 1422
 - `api_token` is the API access token of your node.
 - `internal_connection_port` is the static UDP port which you configured in step 5.
 
-### 8. Configure GnosisVPN client - exit location [macOS]
+### 7. Configure GnosisVPN client - exit location [macOS]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the settings into your `config.toml`:
@@ -158,7 +143,7 @@ intermediates = [ "<community relayer peer id" ]
 
 Save and close the configuration file.
 
-### 9. Enable GnosisVPN to establish connections to the Exit Nodes [macOS]
+### 8. Enable GnosisVPN to establish connections to the Exit Nodes [macOS]
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
@@ -176,6 +161,22 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 4. Click on **OPEN outgoing channel**.
 5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
+
+### 9. Download the latest binary file [macOS]
+
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
+Choose the binary file that matches your system:
+
+| System                | Binary file                 |
+| --------------------- | --------------------------- |
+| macOS with ARM chip   | `gnosis_vpn-aarch64-darwin` |
+| macOS with Intel chip | `gnosis_vpn-x86_64-darwin`  |
+
+Ignore the `*-ctl-*` sibling files.
+We do not need them for now.
+
+In the following steps, we assume you downloaded `gnosis_vpn-aarch64-darwin` to keep the instructions consistent.
+
 
 ### 10. Launch the GnosisVPN binary file [macOS]
 
@@ -332,23 +333,7 @@ services:
 
 6. Click **Update Port Mappings** to save your changes.
 
-### 6. Download the latest binary file [Linux]
-
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
-Choose the binary file that matches your system:
-
-| system                    | binary file                |
-| ------------------------- | -------------------------- |
-| linux with x86 chip       | `gnosis_vpn-x86_64-linux`  |
-| linux with newer ARM chip | `gnosis_vpn-aarch64-linux` |
-| linux with older ARM chip | `gnosis_vpn-armv7l-linux`  |
-
-Ignore the `*-ctl-*` sibling files.
-We do not need them for now.
-
-In the following steps we assume you downloaded `gnosis_vpn-x86_64-linux` to keep the instructions consistent.
-
-### 7. Configure GnosisVPN client - hoprd node [Linux]
+### 6. Configure GnosisVPN client - hoprd node [Linux]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
 2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
@@ -367,7 +352,7 @@ internal_connection_port = 1422
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
-### 8. Configure GnosisVPN client - exit location [Linux]
+### 7. Configure GnosisVPN client - exit location [Linux]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the settings into your `config.toml`:
@@ -389,7 +374,7 @@ intermediates = [ "<community relayer peer id" ]
 
 Save and close the configuration file.
 
-### 9. Enable GnosisVPN to establish connections to the Exit Nodes [Linux]
+### 8. Enable GnosisVPN to establish connections to the Exit Nodes [Linux]
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
@@ -407,6 +392,23 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 4. Click on **OPEN outgoing channel**.
 5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
+
+### 9. Download the latest binary file [Linux]
+
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
+Choose the binary file that matches your system:
+
+| system                    | binary file                |
+| ------------------------- | -------------------------- |
+| linux with x86 chip       | `gnosis_vpn-x86_64-linux`  |
+| linux with newer ARM chip | `gnosis_vpn-aarch64-linux` |
+| linux with older ARM chip | `gnosis_vpn-armv7l-linux`  |
+
+Ignore the `*-ctl-*` sibling files.
+We do not need them for now.
+
+In the following steps we assume you downloaded `gnosis_vpn-x86_64-linux` to keep the instructions consistent.
+
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
