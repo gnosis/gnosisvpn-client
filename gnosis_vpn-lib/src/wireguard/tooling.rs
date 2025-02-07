@@ -152,10 +152,10 @@ impl ConnectSession {
                 self.interface
                     .address
                     .split('.')
-                    .take(3)
+                    .take(2)
                     .collect::<Vec<&str>>()
                     .join(".")
-                    + ".0/24"
+                    + ".0.0/9"
             }
         };
 

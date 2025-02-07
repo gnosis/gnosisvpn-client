@@ -9,15 +9,15 @@ For testing and debugging, exit nodes currently gather logs.
 These logs cannot reveal user requests, server responses, IPs or any other identifying information to Gnosis or any other party.
 Logs are deleted after thirty days.
 
-Outline:
+The following 12 step process will guide you through these topics:
 
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure your hopd node** to allow a GnosisVPN connection.
-- **Download the binary file** and run it with several env var parameters.
 - **Configure GnosisVPN client** using information from three separate sources:
   1. Your hoprd node credentials
-  2. Your assigned device IP
+  2. Your assigned WireGuard IP
   3. Your chosen exit location
+- **Download the binary file** and run it with several env var parameters.
 - **Configure Firefox proxy settings** to use the GnosisVPN connection.
 
 Please select your operating system to begin:
@@ -34,9 +34,9 @@ Please select your operating system to begin:
 1. Download the [WireGuard app](https://apps.apple.com/us/app/wireguard/id1451685025) from the Mac App Store.
 2. Launch WireGuard, create an **Empty tunnel**, name it, and save. Copy the public key of the newly created tunnel.
 
-### 2. Prepare secure input to receive assigned device IP [macOS]
+### 2. Prepare a feedback channel to receive your WireGuard IP [macOS]
 
-Create a secure input location where you will receive your assigned device IP.
+Create a secure input location where you will receive your assigned WireGuard IP.
 
 1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
@@ -44,7 +44,7 @@ Create a secure input location where you will receive your assigned device IP.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
-### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [macOS]
+### 3. Register for GnosisVPN PoC demo [macOS]
 
 Provide your
 
@@ -55,9 +55,9 @@ Provide your
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get your assigned device IP [macOS]
+### 4. Wait until your GnosisVPN user account is created [macOS]
 
-After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
 You will have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [macOS]
@@ -104,39 +104,25 @@ services:
 
 6. Click **Update Port Mappings** to save your changes.
 
-### 6. Download the latest binary file [macOS]
+### 6. Configure GnosisVPN client - hoprd node [macOS]
 
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
-Choose the binary file that matches your system:
-
-| System                | Binary file                 |
-| --------------------- | --------------------------- |
-| macOS with ARM chip   | `gnosis_vpn-aarch64-darwin` |
-| macOS with Intel chip | `gnosis_vpn-x86_64-darwin`  |
-
-Ignore the `*-ctl-*` sibling files.
-We do not need them for now.
-
-In the following steps, we assume you downloaded `gnosis_vpn-aarch64-darwin` to keep the instructions consistent.
-
-### 7. Configure GnosisVPN client - hoprd node [macOS]
-
-1. Download [config](./config.toml) and place it next to the downloaded binary file.
-2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
+1. Create a folder in your home directory called `gnosisvpn-poc`.
+2. Download [config](./config.toml) and move it into that folder.
+3. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
 
 ```toml
 [hoprd_node]
-endpoint = "http://123.456.7.89:3002"
+endpoint = "http://<hoprd node ip>:<hoprd node API port>"
 api_token = "<hoprd node API token>"
 
 internal_connection_port = 1422
 ```
 
-- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
+- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://192.168.0.89:3001`).
 - `api_token` is the API access token of your node.
-- `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
+- `internal_connection_port` is the static UDP port which you configured in step 5.
 
-### 8. Configure GnosisVPN client - exit location [macOS]
+### 7. Configure GnosisVPN client - exit location [macOS]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the settings into your `config.toml`:
@@ -146,19 +132,23 @@ Copy the settings into your `config.toml`:
 destination = "<exit node peer id>"
 
 [connection.target]
-host = "<exit node connection target host>"
+host = "<wg server url>"
 
 [connection.path]
-intermediates = [ `<relay node peer id>` ]
+intermediates = ["<community relayer peer id"]
 ```
+
+- `destination` is the peer ID of the chosen exit node.
+- `host` is the WireGuard server URL of the chosen exit location.
+- `intermediates` specifies the community relay node used to establish the connection.
 
 Save and close the configuration file.
 
-### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [macOS]
+### 8. Enable GnosisVPN to establish connections to the Exit Nodes [macOS]
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
-Look at the **Strategies** section and ensure that `!AutoFunding` is **not** enabled.
+Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
 **Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
 To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
@@ -173,18 +163,34 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
+### 9. Download the latest binary file [macOS]
+
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
+Choose the binary file that matches your system:
+
+| System                | Binary file                 |
+| --------------------- | --------------------------- |
+| macOS with ARM chip   | `gnosis_vpn-aarch64-darwin` |
+| macOS with Intel chip | `gnosis_vpn-x86_64-darwin`  |
+
+Ignore the `*-ctl-*` sibling files.
+We do not need them for now.
+
+Move the downloaded binary into your `gnosisvpn-poc` folder next to your `config.toml`.
+In the following steps, we assume you downloaded `gnosis_vpn-aarch64-darwin` to keep the instructions consistent.
+
 ### 10. Launch the GnosisVPN binary file [macOS]
 
-1. Return to your downloaded binary file and make it executable by executing the following command in your terminal:
+1. Make the downloaded binary executable by running the following command in your terminal:
 
 ```bash
-chmod +x ./gnosis_vpn-aarch64-darwin
+chmod +x ~/gnosisvpn-poc/gnosis_vpn-aarch64-darwin
 ```
 
 2. Provide the path to your configuration file and launch the GnosisVPN binary file.
 
 ```bash
-sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin
+sudo GNOSISVPN_CONFIG_PATH=~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_vpn-aarch64-darwin
 ```
 
 3. Because of macOS security settings, you will see a message that says binary file “cannot be opened because the developer cannot be verified”.
@@ -193,7 +199,7 @@ sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin
 4. In your terminal, run the command to start the binary file again. macOS will prompt you one more time to confirm if you want to open it. Click "Open" or "Open anyway".
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
-The binary file should tell you which setting parameter might be wrong.
+The logs tell you which setting parameter might be wrong.
 
 ### 11. Update the newly created WireGuard tunnel and launch WireGuard [macOS]
 
@@ -208,12 +214,12 @@ PrivateKey = <Generated automatic by WireGuard app>
 
 # NOTE: Copy paste from here
 ListenPort = 51820
-Address = <device IP> # received via drop location, e.g.: 10.128.0.5/32
+Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
 Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
-AllowedIPs = 10.128.0.0/24
+AllowedIPs = 10.128.0.0/9
 PersistentKeepalive = 30
 ```
 
@@ -233,7 +239,7 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 3. Clik "OK" to save the settings.
 
-Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) through GnosisVPN.
+Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
 
 ---
 
@@ -251,9 +257,9 @@ Usually:
 wg genkey | tee privatekey | wg pubkey > publickey
 ```
 
-### 2. Prepare secure input to receive assigned device IP [Linux]
+### 2. Prepare a feedback channel to receive your assigned WireGuard IP [Linux]
 
-Create a secure input location where you will receive your assigned device IP.
+Create a secure input location where you will receive your assigned WireGuard IP.
 
 1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
@@ -261,7 +267,7 @@ Create a secure input location where you will receive your assigned device IP.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
-### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [Linux]
+### 3. Register for GnosisVPN PoC demo [Linux]
 
 1. Prepare your public key for copying:
 
@@ -279,9 +285,9 @@ KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get your assigned device IP [Linux]
+### 4. Wait until your GnosisVPN user account is created [Linux]
 
-After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
 You will have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [Linux]
@@ -328,42 +334,27 @@ services:
 
 6. Click **Update Port Mappings** to save your changes.
 
-### 6. Download the latest binary file [Linux]
+### 6. Configure GnosisVPN client - hoprd node [Linux]
 
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
-Choose the binary file that matches your system:
-
-| system                    | binary file                |
-| ------------------------- | -------------------------- |
-| linux with x86 chip       | `gnosis_vpn-x86_64-linux`  |
-| linux with newer ARM chip | `gnosis_vpn-aarch64-linux` |
-| linux with older ARM chip | `gnosis_vpn-armv7l-linux`  |
-
-Ignore the `*-ctl-*` sibling files.
-We do not need them for now.
-
-In the following steps we assume you downloaded `gnosis_vpn-x86_64-linux` to keep the instructions consistent.
-
-### 7. Configure GnosisVPN client - hoprd node [Linux]
-
-1. Download [config](./config.toml) and place it next to the downloaded binary file.
-2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
+1. Create a folder in your home directory called `gnosisvpn-poc`.
+2. Download [config](./config.toml) and move it into that folder.
+3. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
 
 ```toml
 [hoprd_node]
-endpoint = "http://123.456.7.89:3002"
+endpoint = "http://<hoprd node ip>:<hoprd node API port>"
 api_token = "<hoprd node API token>"
 
 internal_connection_port = 1422
 ```
 
-- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
+- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://192.168.0.89:3001`).
 - `api_token` is the API access token of your node.
-- `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
+- `internal_connection_port` is the static UDP port which you configured in step 5.
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
-### 8. Configure GnosisVPN client - exit location [Linux]
+### 7. Configure GnosisVPN client - exit location [Linux]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the settings into your `config.toml`:
@@ -373,19 +364,23 @@ Copy the settings into your `config.toml`:
 destination = "<exit node peer id>"
 
 [connection.target]
-host = "<exit node connection target host>"
+host = "<wg server url>"
 
 [connection.path]
-intermediates = [ `<relay node peer id>` ]
+intermediates = ["<community relayer peer id"]
 ```
+
+- `destination` is the peer ID of the chosen exit node.
+- `host` is the WireGuard server URL of the chosen exit location.
+- `intermediates` specifies the community relay node used to establish the connection.
 
 Save and close the configuration file.
 
-### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [Linux]
+### 8. Enable GnosisVPN to establish connections to the Exit Nodes [Linux]
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
-Look at the **Strategies** section and ensure that `!AutoFunding` is **not** enabled.
+Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
 **Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
 To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
@@ -400,22 +395,39 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 5. Enter funding amount (recommended: **15 wxHOPR**) and click **Open Channel**.
 6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
+### 9. Download the latest binary file [Linux]
+
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
+Choose the binary file that matches your system:
+
+| system                    | binary file                |
+| ------------------------- | -------------------------- |
+| linux with x86 chip       | `gnosis_vpn-x86_64-linux`  |
+| linux with newer ARM chip | `gnosis_vpn-aarch64-linux` |
+| linux with older ARM chip | `gnosis_vpn-armv7l-linux`  |
+
+Ignore the `*-ctl-*` sibling files.
+We do not need them for now.
+
+Move the downloaded binary into your `gnosisvpn-poc` folder next to your `config.toml`.
+In the following steps we assume you downloaded `gnosis_vpn-x86_64-linux` to keep the instructions consistent.
+
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
-1. Return to your downloaded binary file and make it executable:
+1. Make the downloaded binary executable by running the following command in your terminal:
 
 ```bash
-chmod +x ./gnosis_vpn-x86_64-linux
+chmod +x ~/gnosisvpn-poc/gnosis_vpn-x86_64-linux
 ```
 
 2. Provide the path to your configuration file and launch the GnosisVPN binary file.
 
 ```bash
-sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-x86_64-linux
+sudo GNOSISVPN_CONFIG_PATH= ~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_vpn-x86_64-linux
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
-The binary file should tell you which setting parameter might be wrong.
+The logs tell you which setting parameter might be wrong.
 
 ### 11. Create a wireguard interface to use the established GnosisVPN connection [Linux]
 
@@ -426,12 +438,12 @@ Replace placeholders `<...>` with the actual values as documented.
 [Interface]
 PrivateKey = <Generated automatic by WireGuard app>
 ListenPort = 51820
-Address = <device IP> # received via drop location, e.g.: 10.128.0.5/32
+Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
 Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
-AllowedIPs = 10.128.0.0/24
+AllowedIPs = 10.128.0.0/9
 PersistentKeepalive = 30
 ```
 
@@ -451,4 +463,4 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 3. Clik "OK" to save the settings.
 
-Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) through GnosisVPN.
+Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.

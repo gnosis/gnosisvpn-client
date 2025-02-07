@@ -3,7 +3,6 @@ use gnosis_vpn_lib::log_output;
 use gnosis_vpn_lib::peer_id::PeerId;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fmt;
 use std::thread;
 use url::Url;
@@ -79,29 +78,26 @@ pub fn schedule_retry_list_sessions(
 
 impl fmt::Display for EntryNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut print = HashMap::from([
-            ("endpoint", self.endpoint.to_string()),
-            ("api_token", "*****".to_string()),
-        ]);
-        print.insert("path", format!("{}", self.path));
-        if let Some(listen_host) = &self.listen_host {
-            print.insert("listen_host", listen_host.to_string());
-        }
-        // TODO avoid nesting json
-        if let Some(addresses) = &self.addresses {
-            print.insert("addresses", log_output::serialize(&addresses));
-        }
-        let val = log_output::serialize(&print);
-        write!(f, "{}", val)
+        let dsp = match &self.addresses {
+            Some(en_addresses) => log_output::peer_id(en_addresses.hopr.as_str()),
+            None => self.endpoint.to_string(),
+        };
+        write!(f, "({})", dsp)
     }
 }
 
 impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Path::Hop(hop) => write!(f, "hop: {}", hop),
-            Path::Intermediates(ids) => write!(f, "intermediates: {:?}", ids),
-        }
+        let hops = match self {
+            Path::Hop(hop) => "(hop)".repeat(*hop as usize),
+            Path::Intermediates(ids) => ids
+                .iter()
+                .map(|id| format!("({})", log_output::peer_id(id.to_string().as_str())))
+                .collect::<Vec<String>>()
+                .join(""),
+        };
+        let dsp = hops.split(")(").collect::<Vec<&str>>().join(") <-> (");
+        write!(f, "{}", dsp)
     }
 }
 
