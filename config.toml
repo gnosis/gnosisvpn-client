@@ -21,4 +21,4 @@ destination = "<exit node peer id>"
 host = "<wg server url>"
 
 [connection.path]
-intermediates = [ "<community relayer peer id" ]
+intermediates = ["<community relayer peer id"]

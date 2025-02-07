@@ -135,7 +135,7 @@ destination = "<exit node peer id>"
 host = "<wg server url>"
 
 [connection.path]
-intermediates = [ "<community relayer peer id" ]
+intermediates = ["<community relayer peer id"]
 ```
 
 - `destination` is the peer ID of the chosen exit node.
@@ -367,7 +367,7 @@ destination = "<exit node peer id>"
 host = "<wg server url>"
 
 [connection.path]
-intermediates = [ "<community relayer peer id" ]
+intermediates = ["<community relayer peer id"]
 ```
 
 - `destination` is the peer ID of the chosen exit node.
