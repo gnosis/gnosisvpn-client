@@ -152,6 +152,10 @@ host = "<wg server url>"
 intermediates = [ "<community relayer peer id" ]
 ```
 
+- `destination` is the peer ID of the chosen exit node.
+- `host` is the WireGuard server URL of the chosen exit location.
+- `intermediates` specifies the community relay node used to establish the connection.
+
 Save and close the configuration file.
 
 ### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [macOS]
@@ -378,6 +382,10 @@ host = "<wg server url>"
 [connection.path]
 intermediates = [ "<community relayer peer id" ]
 ```
+
+- `destination` is the peer ID of the chosen exit node.
+- `host` is the WireGuard server URL of the chosen exit location.
+- `intermediates` specifies the community relay node used to establish the connection.
 
 Save and close the configuration file.
 
