@@ -9,14 +9,14 @@ For testing and debugging, exit nodes currently gather logs.
 These logs cannot reveal user requests, server responses, IPs or any other identifying information to Gnosis or any other party.
 Logs are deleted after thirty days.
 
-Outline:
+The following 12 step process will guide you through these topics:
 
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure your hopd node** to allow a GnosisVPN connection.
 - **Download the binary file** and run it with several env var parameters.
 - **Configure GnosisVPN client** using information from three separate sources:
   1. Your hoprd node credentials
-  2. Your assigned device IP
+  2. Your assigned WireGuard IP
   3. Your chosen exit location
 - **Configure Firefox proxy settings** to use the GnosisVPN connection.
 
@@ -34,9 +34,9 @@ Please select your operating system to begin:
 1. Download the [WireGuard app](https://apps.apple.com/us/app/wireguard/id1451685025) from the Mac App Store.
 2. Launch WireGuard, create an **Empty tunnel**, name it, and save. Copy the public key of the newly created tunnel.
 
-### 2. Prepare secure input to receive assigned device IP [macOS]
+### 2. Prepare a feedback channel to receive your WireGuard IP [macOS]
 
-Create a secure input location where you will receive your assigned device IP.
+Create a secure input location where you will receive your assigned WireGuard IP.
 
 1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
@@ -55,9 +55,9 @@ Provide your
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get your assigned device IP [macOS]
+### 4. Wait until you get your assigned WireGuard IP [macOS]
 
-After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
 You will have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [macOS]
@@ -208,7 +208,7 @@ PrivateKey = <Generated automatic by WireGuard app>
 
 # NOTE: Copy paste from here
 ListenPort = 51820
-Address = <device IP> # received via drop location, e.g.: 10.128.0.5/32
+Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
@@ -251,9 +251,9 @@ Usually:
 wg genkey | tee privatekey | wg pubkey > publickey
 ```
 
-### 2. Prepare secure input to receive assigned device IP [Linux]
+### 2. Prepare a feedback channel to receive your assigned WireGuard IP [Linux]
 
-Create a secure input location where you will receive your assigned device IP.
+Create a secure input location where you will receive your assigned WireGuard IP.
 
 1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
@@ -279,9 +279,9 @@ KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get your assigned device IP [Linux]
+### 4. Wait until you get your assigned WireGuard IP [Linux]
 
-After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
 You will have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [Linux]
@@ -426,7 +426,7 @@ Replace placeholders `<...>` with the actual values as documented.
 [Interface]
 PrivateKey = <Generated automatic by WireGuard app>
 ListenPort = 51820
-Address = <device IP> # received via drop location, e.g.: 10.128.0.5/32
+Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
