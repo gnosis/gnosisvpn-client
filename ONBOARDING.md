@@ -134,7 +134,7 @@ internal_connection_port = 1422
 
 - `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://192.168.0.89:3001`).
 - `api_token` is the API access token of your node.
-- `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
+- `internal_connection_port` is the static UDP port which you configured in step 5.
 
 ### 8. Configure GnosisVPN client - exit location [macOS]
 
@@ -359,7 +359,7 @@ internal_connection_port = 1422
 
 - `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://192.168.0.89:3001`).
 - `api_token` is the API access token of your node.
-- `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
+- `internal_connection_port` is the static UDP port which you configured in step 5.
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
