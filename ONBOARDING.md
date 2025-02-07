@@ -146,10 +146,10 @@ Copy the settings into your `config.toml`:
 destination = "<exit node peer id>"
 
 [connection.target]
-host = "<exit node connection target host>"
+host = "<wg server url>"
 
 [connection.path]
-intermediates = [ `<relay node peer id>` ]
+intermediates = [ "<community relayer peer id" ]
 ```
 
 Save and close the configuration file.
@@ -373,10 +373,10 @@ Copy the settings into your `config.toml`:
 destination = "<exit node peer id>"
 
 [connection.target]
-host = "<exit node connection target host>"
+host = "<wg server url>"
 
 [connection.path]
-intermediates = [ `<relay node peer id>` ]
+intermediates = [ "<community relayer peer id" ]
 ```
 
 Save and close the configuration file.
