@@ -235,7 +235,10 @@ Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) t
 
 ### 1. Generate WireGuard keypair [Linux]
 
-Follow guidelines on official [WireGuard documentation](https://www.wireguard.com/quickstart/#key-generation).
+1. Make sure you have WireGuard and WireGuard-tools installed on your system.
+See [WireGuard installation guide](https://www.wireguard.com/install/).
+2. Follow the key generation guidelines on official [WireGuard documentation](https://www.wireguard.com/quickstart/#key-generation).
+
 Usually:
 
 ```bash
