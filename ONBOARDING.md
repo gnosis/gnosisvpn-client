@@ -46,7 +46,11 @@ Create a secure input location where you will receive your assigned device IP.
 
 ### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [macOS]
 
-Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+Provide your
+- public key
+- **rlim.com** URL
+- **rlim.com** edit code
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until you get your assigned device IP [macOS]
@@ -257,14 +261,19 @@ Create a secure input location where you will receive your assigned device IP.
 
 ### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [Linux]
 
-1. Preview public key:
+1. Prepare your public key for copying:
 
 ```bash
-cat publickey | xclip -r -sel clip
+$ cat publickey
+KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 ```
 
-2. Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
-   If you have trouble opening cryptpad, please try to open it in incognito mode.
+2. Provide your
+- public key
+- **rlim.com** URL
+- **rlim.com** edit code
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until you get your assigned device IP [Linux]
 
