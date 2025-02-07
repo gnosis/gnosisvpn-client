@@ -52,8 +52,7 @@ If you have trouble opening cryptpad, please try to open it in incognito mode.
 ### 4. Wait until you get your assigned device IP [macOS]
 
 After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
-If you provided a communication channel (email/telegram) in the onboarding form, you will be notified.
-Otherwise, you will just have to check your **rlim.com** document yourself after a reasonable amount of time.
+You will have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [macOS]
 
@@ -112,6 +111,8 @@ Choose the binary file that matches your system:
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
 
+In the following steps, we assume you downloaded `gnosis_vpn-aarch64-darwin` to keep the instructions consistent.
+
 ### 7. Configure GnosisVPN client - hoprd node [macOS]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
@@ -128,8 +129,6 @@ internal_connection_port = 1422
 - `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
 - `api_token` is the API access token of your node.
 - `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
-
-If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
 ### 8. Configure GnosisVPN client - exit location [macOS]
 
@@ -174,21 +173,12 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 
 ```bash
 chmod +x ./gnosis_vpn-aarch64-darwin
-# depending on your system, alternatively: chmod +x ./gnosis_vpn-x86_64-darwin
 ```
 
-2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
-   The socket path is only used for communication with the GnosisVPN client which is out of scope for this guide.
-   If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosis_vpn.sock` as it's communication socket.
+2. Provide the path to your configuration file and launch the GnosisVPN binary file.
 
 ```bash
-# <system> matches the one you chose earlier
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosis_vpn.sock ./gnosis_vpn-aarch64-darwin
-# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosis_vpn.sock ./gnosis_vpn-x86_64-darwin
-
-# or with privileged access
-sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin`
-# depending on your system, alternatively: sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-x86_64-darwin`
+sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin
 ```
 
 3. Because of macOS security settings, you will see a message that says binary file “cannot be opened because the developer cannot be verified”.
@@ -276,8 +266,7 @@ cat publickey | xclip -r -sel clip
 ### 4. Wait until you get your assigned device IP [Linux]
 
 After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
-If you provided a communication channel (email/telegram) in the onboarding form, you will be notified.
-Otherwise, you will just have to check your **rlim.com** document yourself after a reasonable amount of time.
+You will have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [Linux]
 
@@ -337,6 +326,8 @@ Choose the binary file that matches your system:
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
 
+In the following steps we assume you downloaded `gnosis_vpn-x86_64-linux` to keep the instructions consistent.
+
 ### 7. Configure GnosisVPN client - hoprd node [Linux]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
@@ -395,23 +386,16 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
-Replace `<gnosis_vpn-binary>` with the binary file you downloaded earlier, see [step 6](#6-download-the-latest-binary-file-linux).
-
 1. Return to your downloaded binary file and make it executable:
 
 ```bash
-chmod +x <gnosis_vpn-binary>
+chmod +x ./gnosis_vpn-x86_64-linux
 ```
 
-2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
-   The socket path is only used for communication with the GnosisVPN client which is out of scope for this guide.
-   If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosis_vpn.sock` as it's communication socket.
+2. Provide the path to your configuration file and launch the GnosisVPN binary file.
 
 ```bash
-# without privileged access
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosis_vpn.sock <gnosis_vpn-binary>
-# with privileged access
-sudo GNOSISVPN_CONFIG_PATH=./config.toml <gnosis_vpn-binary>
+sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-x86_64-linux
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
