@@ -98,10 +98,16 @@ impl fmt::Display for EntryNode {
 
 impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Path::Hop(hop) => write!(f, "hop: {}", hop),
-            Path::Intermediates(ids) => write!(f, "intermediates: {:?}", ids),
-        }
+        let hops = match self {
+            Path::Hop(hop) => "(hop)".repeat(*hop as usize),
+            Path::Intermediates(ids) => ids
+                .iter()
+                .map(|id| format!("({})", id))
+                .collect::<Vec<String>>()
+                .join(""),
+        };
+        let dsp = hops.split(")(").collect::<Vec<&str>>().join(") -> (");
+        write!(f, "{}", dsp)
     }
 }
 
