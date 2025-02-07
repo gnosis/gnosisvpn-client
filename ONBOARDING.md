@@ -199,7 +199,7 @@ sudo GNOSISVPN_CONFIG_PATH=~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_vp
 4. In your terminal, run the command to start the binary file again. macOS will prompt you one more time to confirm if you want to open it. Click "Open" or "Open anyway".
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
-The binary file should tell you which setting parameter might be wrong.
+The logs tell you which setting parameter might be wrong.
 
 ### 11. Update the newly created WireGuard tunnel and launch WireGuard [macOS]
 
@@ -219,7 +219,7 @@ Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
 Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
-AllowedIPs = 10.128.0.0/24
+AllowedIPs = 10.128.0.0/9
 PersistentKeepalive = 30
 ```
 
@@ -427,7 +427,7 @@ sudo GNOSISVPN_CONFIG_PATH= ~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_v
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
-The binary file should tell you which setting parameter might be wrong.
+The logs tell you which setting parameter might be wrong.
 
 ### 11. Create a wireguard interface to use the established GnosisVPN connection [Linux]
 
@@ -443,7 +443,7 @@ Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
 Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
-AllowedIPs = 10.128.0.0/24
+AllowedIPs = 10.128.0.0/9
 PersistentKeepalive = 30
 ```
 
