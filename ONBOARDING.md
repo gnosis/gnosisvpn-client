@@ -100,7 +100,7 @@ services:
 
 ### 6. Download the latest binary file [macOS]
 
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
 Choose the binary file that matches your system:
 
 | System                | Binary file                 |
@@ -314,7 +314,7 @@ services:
 
 ### 6. Download the latest binary file [Linux]
 
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
 Choose the binary file that matches your system:
 
 | system                    | binary file                |
