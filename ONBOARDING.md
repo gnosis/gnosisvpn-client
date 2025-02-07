@@ -44,7 +44,7 @@ Create a secure input location where you will receive your assigned WireGuard IP
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
-### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [macOS]
+### 3. Register for GnosisVPN PoC demo [macOS]
 
 Provide your
 
@@ -55,7 +55,7 @@ Provide your
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get your assigned WireGuard IP [macOS]
+### 4. Wait until your GnosisVPN user account is created [macOS]
 
 After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
 You will have to check your **rlim.com** document yourself after a reasonable amount of time.
@@ -126,13 +126,13 @@ In the following steps, we assume you downloaded `gnosis_vpn-aarch64-darwin` to 
 
 ```toml
 [hoprd_node]
-endpoint = "http://123.456.7.89:3002"
+endpoint = "http://<hoprd node ip>:<hoprd node API port>"
 api_token = "<hoprd node API token>"
 
 internal_connection_port = 1422
 ```
 
-- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
+- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://192.168.0.89:3001`).
 - `api_token` is the API access token of your node.
 - `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
 
@@ -261,7 +261,7 @@ Create a secure input location where you will receive your assigned WireGuard IP
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
-### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [Linux]
+### 3. Register for GnosisVPN PoC demo [Linux]
 
 1. Prepare your public key for copying:
 
@@ -279,7 +279,7 @@ KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get your assigned WireGuard IP [Linux]
+### 4. Wait until your GnosisVPN user account is created [Linux]
 
 After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
 You will have to check your **rlim.com** document yourself after a reasonable amount of time.
@@ -351,13 +351,13 @@ In the following steps we assume you downloaded `gnosis_vpn-x86_64-linux` to kee
 
 ```toml
 [hoprd_node]
-endpoint = "http://123.456.7.89:3002"
+endpoint = "http://<hoprd node ip>:<hoprd node API port>"
 api_token = "<hoprd node API token>"
 
 internal_connection_port = 1422
 ```
 
-- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
+- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://192.168.0.89:3001`).
 - `api_token` is the API access token of your node.
 - `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
 
