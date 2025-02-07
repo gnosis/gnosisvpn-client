@@ -47,11 +47,12 @@ Create a secure input location where you will receive your assigned device IP.
 ### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [macOS]
 
 Provide your
+
 - public key
 - **rlim.com** URL
 - **rlim.com** edit code
-in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
-If you have trouble opening cryptpad, please try to open it in incognito mode.
+  in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+  If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until you get your assigned device IP [macOS]
 
@@ -240,7 +241,7 @@ Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) t
 ### 1. Generate WireGuard keypair [Linux]
 
 1. Make sure you have WireGuard and WireGuard-tools installed on your system.
-See [WireGuard installation guide](https://www.wireguard.com/install/).
+   See [WireGuard installation guide](https://www.wireguard.com/install/).
 2. Follow the key generation guidelines on official [WireGuard documentation](https://www.wireguard.com/quickstart/#key-generation).
 
 Usually:
@@ -269,11 +270,12 @@ KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 ```
 
 2. Provide your
+
 - public key
 - **rlim.com** URL
 - **rlim.com** edit code
-in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
-If you have trouble opening cryptpad, please try to open it in incognito mode.
+  in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+  If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until you get your assigned device IP [Linux]
 
