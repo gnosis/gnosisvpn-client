@@ -338,6 +338,24 @@ impl Core {
                     cancel_sender,
                 };
 
+                // prepare session path for printing
+                let session_path = {
+                    let (en, path) = match &self.entry_node {
+                        Some(en) => (en.to_string(), en.path.to_string()),
+                        None => ("<entry_node>".to_string(), "<path>".to_string()),
+                    };
+
+                    let xn = match &self.config.connection {
+                        Some(conn) => match conn.target.as_ref().and_then(|t| t.host.clone()) {
+                            Some(host) => format!("({} - {})", conn.destination.to_string(), host),
+                            None => format!("({})", conn.destination.to_string()),
+                        },
+                        None => "<exitnode>".to_string(),
+                    };
+
+                    format!("{} <-> {} <-> {}", en, path, xn)
+                };
+
                 // connect wireguard session if possible
                 if let (Some(wg), Some(_), Some(privkey), Some(wg_conf), Some(en_host)) = (
                     &self.wg,
@@ -369,7 +387,11 @@ impl Core {
     /---==========================---\
     |   VPN CONNECTION ESTABLISHED   |
     \---==========================---/
-"
+
+    route: {}
+
+",
+                                session_path
                             );
                         }
                         Err(e) => {
@@ -379,15 +401,37 @@ impl Core {
                     }
                 } else {
                     tracing::info!("opened session without handling wireguard");
+
                     tracing::info!(
                         r"
 
     /---============================---\
     |   HOPRD CONNECTION ESTABLISHED   |
     \---============================---/
-"
+
+    route: {}
+
+",
+                        session_path
                     );
                 }
+
+                if let (Some(en), Some(session)) = (&self.entry_node, &self.config.connection) {
+                    let open_session = session::OpenSession {
+                        endpoint: en.endpoint.clone(),
+                        api_token: en.api_token.clone(),
+                        destination: session.destination.to_string(),
+                        listen_host: en.listen_host.clone(),
+                        path: session.path.clone(),
+                        target: session.target.clone(),
+                        capabilities: session.capabilities.clone(),
+                    };
+                    tracing::info!("opening session");
+                    session::open(&self.client, &self.sender, &open_session)?;
+                } else {
+                    tracing::warn!("no entry node or session to open");
+                }
+
                 Ok(())
             }
             remote_data::Event::Error(err) => match &self.fetch_data.open_session {
