@@ -9,6 +9,7 @@ pub enum Event {
     FetchListSessions(remote_data::Event),
     FetchCloseSession(remote_data::Event),
     CheckSession,
+    IdleTick,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

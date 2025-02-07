@@ -83,10 +83,7 @@ enum Issue {
 
 fn read_config() -> (Config, Option<Issue>) {
     match config::read() {
-        Ok(cfg) => {
-            tracing::info!("read config without issues");
-            (cfg, None)
-        }
+        Ok(cfg) => (cfg, None),
         Err(config::Error::NoFile) => {
             tracing::info!("no config - using default");
             (Config::default(), None)
@@ -255,6 +252,7 @@ impl Core {
             Event::FetchListSessions(evt) => self.evt_fetch_list_sessions(evt),
             Event::FetchCloseSession(evt) => self.evt_fetch_close_session(evt),
             Event::CheckSession => self.evt_check_session(),
+            Event::IdleTick => self.evt_idle_tick(),
         }
     }
 
@@ -491,6 +489,13 @@ impl Core {
         }
     }
 
+    fn evt_idle_tick(&mut self) -> Result<()> {
+        if let Status::Idle = self.status {
+            self.check_session()
+        } else {
+            Ok(())
+        }
+    }
     fn evt_check_session(&mut self) -> Result<()> {
         match (&self.status, &self.fetch_data.list_sessions) {
             (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => {

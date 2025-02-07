@@ -2,9 +2,9 @@ use exponential_backoff::Backoff;
 use std::time;
 
 pub fn open_session() -> Backoff {
-    let attempts = 3;
+    let attempts = 5;
     let min = time::Duration::from_secs(1);
-    let max = time::Duration::from_secs(5);
+    let max = time::Duration::from_secs(10);
     Backoff::new(attempts, min, max)
 }
 
