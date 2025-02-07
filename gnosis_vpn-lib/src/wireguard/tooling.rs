@@ -155,7 +155,7 @@ impl ConnectSession {
                     .take(2)
                     .collect::<Vec<&str>>()
                     .join(".")
-                    + ".0/9"
+                    + ".0.0/9"
             }
         };
 
