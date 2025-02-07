@@ -19,6 +19,11 @@ pub fn elapsed(timestamp: &SystemTime) -> String {
     }
 }
 
+pub fn peer_id(id: &str) -> String {
+    let l = id.len();
+    format!(".{}", &id[l - 4..])
+}
+
 fn truncate_after_second_space(s: &str) -> &str {
     let spaces = s.match_indices(' ').take(2);
     if let Some((index, _)) = spaces.last() {

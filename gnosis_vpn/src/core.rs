@@ -347,7 +347,11 @@ impl Core {
 
                     let xn = match &self.config.connection {
                         Some(conn) => match conn.target.as_ref().and_then(|t| t.host.clone()) {
-                            Some(host) => format!("({} - {})", conn.destination.to_string(), host),
+                            Some(host) => format!(
+                                "({})({})",
+                                log_output::peer_id(conn.destination.to_string().as_str()),
+                                host
+                            ),
                             None => format!("({})", conn.destination.to_string()),
                         },
                         None => "<exitnode>".to_string(),
@@ -389,7 +393,6 @@ impl Core {
     \---==========================---/
 
     route: {}
-
 ",
                                 session_path
                             );
@@ -410,26 +413,9 @@ impl Core {
     \---============================---/
 
     route: {}
-
 ",
                         session_path
                     );
-                }
-
-                if let (Some(en), Some(session)) = (&self.entry_node, &self.config.connection) {
-                    let open_session = session::OpenSession {
-                        endpoint: en.endpoint.clone(),
-                        api_token: en.api_token.clone(),
-                        destination: session.destination.to_string(),
-                        listen_host: en.listen_host.clone(),
-                        path: session.path.clone(),
-                        target: session.target.clone(),
-                        capabilities: session.capabilities.clone(),
-                    };
-                    tracing::info!("opening session");
-                    session::open(&self.client, &self.sender, &open_session)?;
-                } else {
-                    tracing::warn!("no entry node or session to open");
                 }
 
                 Ok(())

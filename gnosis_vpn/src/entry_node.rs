@@ -1,4 +1,5 @@
 use anyhow::Result;
+use gnosis_vpn_lib::log_output;
 use gnosis_vpn_lib::peer_id::PeerId;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
@@ -78,7 +79,7 @@ pub fn schedule_retry_list_sessions(
 impl fmt::Display for EntryNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let dsp = match &self.addresses {
-            Some(en_addresses) => en_addresses.hopr.clone(),
+            Some(en_addresses) => log_output::peer_id(en_addresses.hopr.as_str()),
             None => self.endpoint.to_string(),
         };
         write!(f, "({})", dsp)
@@ -91,7 +92,7 @@ impl fmt::Display for Path {
             Path::Hop(hop) => "(hop)".repeat(*hop as usize),
             Path::Intermediates(ids) => ids
                 .iter()
-                .map(|id| format!("({})", id))
+                .map(|id| format!("({})", log_output::peer_id(id.to_string().as_str())))
                 .collect::<Vec<String>>()
                 .join(""),
         };
