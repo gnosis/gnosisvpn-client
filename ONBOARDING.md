@@ -46,7 +46,13 @@ Create a secure input location where you will receive your assigned device IP.
 
 ### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [macOS]
 
-Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+Provide your
+
+- public key
+- **rlim.com** URL
+- **rlim.com** edit code
+
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until you get your assigned device IP [macOS]
@@ -100,7 +106,7 @@ services:
 
 ### 6. Download the latest binary file [macOS]
 
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
 Choose the binary file that matches your system:
 
 | System                | Binary file                 |
@@ -235,7 +241,10 @@ Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) t
 
 ### 1. Generate WireGuard keypair [Linux]
 
-Follow guidelines on official [WireGuard documentation](https://www.wireguard.com/quickstart/#key-generation).
+1. Make sure you have WireGuard and WireGuard-tools installed on your system.
+   See [WireGuard installation guide](https://www.wireguard.com/install/).
+2. Follow the key generation guidelines on official [WireGuard documentation](https://www.wireguard.com/quickstart/#key-generation).
+
 Usually:
 
 ```bash
@@ -254,14 +263,21 @@ Create a secure input location where you will receive your assigned device IP.
 
 ### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [Linux]
 
-1. Preview public key:
+1. Prepare your public key for copying:
 
 ```bash
-cat publickey | xclip -r -sel clip
+$ cat publickey
+KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 ```
 
-2. Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
-   If you have trouble opening cryptpad, please try to open it in incognito mode.
+2. Provide your
+
+- public key
+- **rlim.com** URL
+- **rlim.com** edit code
+
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until you get your assigned device IP [Linux]
 
@@ -314,7 +330,7 @@ services:
 
 ### 6. Download the latest binary file [Linux]
 
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](/../../releases/latest) page.
 Choose the binary file that matches your system:
 
 | system                    | binary file                |
