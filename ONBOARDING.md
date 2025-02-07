@@ -158,7 +158,7 @@ intermediates = [ "<community relayer peer id" ]
 
 Save and close the configuration file.
 
-### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [macOS]
+### 9. Enable GnosisVPN to establish connections to the Exit Nodes [macOS]
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
@@ -389,7 +389,7 @@ intermediates = [ "<community relayer peer id" ]
 
 Save and close the configuration file.
 
-### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [Linux]
+### 9. Enable GnosisVPN to establish connections to the Exit Nodes [Linux]
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
