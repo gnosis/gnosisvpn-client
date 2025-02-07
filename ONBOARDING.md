@@ -158,7 +158,7 @@ Save and close the configuration file.
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
-Look at the **Strategies** section and ensure that `!AutoFunding` is **not** enabled.
+Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
 **Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
 To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
@@ -385,7 +385,7 @@ Save and close the configuration file.
 
 **Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
 To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
-Look at the **Strategies** section and ensure that `!AutoFunding` is **not** enabled.
+Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
 **Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
 To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
