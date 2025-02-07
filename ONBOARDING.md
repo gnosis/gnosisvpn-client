@@ -233,7 +233,7 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 3. Clik "OK" to save the settings.
 
-Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) through GnosisVPN.
+Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
 
 ---
 
@@ -451,4 +451,4 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 3. Clik "OK" to save the settings.
 
-Start browsing [these select sites](https://gnosisvpn.com/servers#whitelisted) through GnosisVPN.
+Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
