@@ -106,8 +106,9 @@ services:
 
 ### 6. Configure GnosisVPN client - hoprd node [macOS]
 
-1. Download [config](./config.toml) and place it next to the downloaded binary file.
-2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
+1. Create a folder in your home directory called `gnosisvpn-poc`.
+2. Download [config](./config.toml) and move it into that folder.
+3. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
 
 ```toml
 [hoprd_node]
@@ -175,21 +176,21 @@ Choose the binary file that matches your system:
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
 
+Move the downloaded binary into your `gnosisvpn-poc` folder next to your `config.toml`.
 In the following steps, we assume you downloaded `gnosis_vpn-aarch64-darwin` to keep the instructions consistent.
-
 
 ### 10. Launch the GnosisVPN binary file [macOS]
 
-1. Return to your downloaded binary file and make it executable by executing the following command in your terminal:
+1. Make the downloaded binary executable by running the following command in your terminal:
 
 ```bash
-chmod +x ./gnosis_vpn-aarch64-darwin
+chmod +x ~/gnosisvpn-poc/gnosis_vpn-aarch64-darwin
 ```
 
 2. Provide the path to your configuration file and launch the GnosisVPN binary file.
 
 ```bash
-sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin
+sudo GNOSISVPN_CONFIG_PATH=~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_vpn-aarch64-darwin
 ```
 
 3. Because of macOS security settings, you will see a message that says binary file “cannot be opened because the developer cannot be verified”.
@@ -335,8 +336,9 @@ services:
 
 ### 6. Configure GnosisVPN client - hoprd node [Linux]
 
-1. Download [config](./config.toml) and place it next to the downloaded binary file.
-2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
+1. Create a folder in your home directory called `gnosisvpn-poc`.
+2. Download [config](./config.toml) and move it into that folder.
+3. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
 
 ```toml
 [hoprd_node]
@@ -407,21 +409,21 @@ Choose the binary file that matches your system:
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
 
+Move the downloaded binary into your `gnosisvpn-poc` folder next to your `config.toml`.
 In the following steps we assume you downloaded `gnosis_vpn-x86_64-linux` to keep the instructions consistent.
-
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
-1. Return to your downloaded binary file and make it executable:
+1. Make the downloaded binary executable by running the following command in your terminal:
 
 ```bash
-chmod +x ./gnosis_vpn-x86_64-linux
+chmod +x ~/gnosisvpn-poc/gnosis_vpn-x86_64-linux
 ```
 
 2. Provide the path to your configuration file and launch the GnosisVPN binary file.
 
 ```bash
-sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-x86_64-linux
+sudo GNOSISVPN_CONFIG_PATH= ~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_vpn-x86_64-linux
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
