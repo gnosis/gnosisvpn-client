@@ -1,7 +1,7 @@
 # Onboarding
 
-Setting up the GnosisVPN PoC can be somewhat complex, as it was designed as a technical showcase rather than a full-fledged product.
-If you are not comfortable editing configuration files or using your terminal, please wait for the next version, which will offer a more streamlined user experience.
+Setting up the current version of GnosisVPN PoC can be somewhat complex, as it was designed as a technical proof of concept rather than a full-fledged product.
+If you are not comfortable editing configuration files or using your terminal, or if you are unable to [run HOPR's `hoprd` node](https://docs.hoprnet.org/node/run-a-node-overview), please wait for the next version, which will offer a more streamlined user experience. We expect the below instructions to take approximately 1 hour (excluding wait time for obtaining your VPN IP).
 
 The Gnosis VPN proof of concept is a work in progress which should not be used in situations which require full anonymity.
 To manage load and aid with testing, an allow list of sites is currently enforced: the full allow list can be viewed [here](https://gnosisvpn.com/servers).
@@ -65,7 +65,7 @@ You will have to check your **rlim.com** document yourself after a reasonable am
 GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: `1422`).
 
 Treat this as an additional port for hoprd that needs the same treatment as the peer-to-peer port and API port.
-If you set up any firewall rules or port forwarding for those ports you will need to do the same for GnosisVPN port.
+If you set up any firewall rules or [port forwarding](https://docs.hoprnet.org/node/port-forwarding) for those ports you will need to do the same for GnosisVPN port.
 
 Additionally you need to configure your hoprd node to allow GnosisVPN connections.
 The usual way of running horpd is in a docker container.
@@ -75,7 +75,7 @@ Depending on your setup this can be done in different ways.
 
 #### Hoprd for Docker [macOS]
 
-Update the run command to inlude the port forwarding: `docker run ... -p 1422:1422/udp ...`.
+Update the `hoprd` run command to inlude the port forwarding: `docker run ... -p 1422:1422/udp ...`.
 
 #### Hoprd for Docker Compose [macOS]
 
@@ -107,8 +107,8 @@ services:
 ### 6. Configure GnosisVPN client - hoprd node [macOS]
 
 1. Create a folder in your home directory called `gnosisvpn-poc`.
-2. Download [config](./config.toml) and move it into that folder.
-3. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
+2. Download the [config.toml file](./config.toml) and move it into that folder.
+3. Edit the `config.toml` and locate the `[hoprd_node]` section to adjust these values:
 
 ```toml
 [hoprd_node]
@@ -144,10 +144,10 @@ intermediates = ["<community relayer peer id"]
 
 Save and close the configuration file.
 
-### 8. Enable GnosisVPN to establish connections to the Exit Nodes [macOS]
+### 8. Enable GnosisVPN to establish connections to the Exit Nodes from your hoprd node [macOS]
 
-**Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
-To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
+**Caution:** If you have **channel auto-funding** enabled on your horpd node, you might drain your funds quickly.
+To verify this, connect to your node via **Admin UI** of your hoprd node and navigate to the **Configuration** page.
 Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
 **Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
@@ -156,7 +156,7 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 
 #### Steps to Open a Payment Channel [macOS]
 
-1. Connect to your node via **Admin UI**.
+1. Connect to your node via **Admin UI** of your hoprd node.
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
@@ -204,7 +204,7 @@ The logs tell you which setting parameter might be wrong.
 ### 11. Update the newly created WireGuard tunnel and launch WireGuard [macOS]
 
 In the WireGuard app, edit the tunnel you created.
-Leave existing content including the **PrvateKey** as is and paste this additional content as marked in the comments.
+Leave existing content including the **PrivateKey** as is and paste this additional content as marked in the comments.
 Replace placeholders `<...>` with the actual values as documented.
 
 ```conf
@@ -295,7 +295,7 @@ You will have to check your **rlim.com** document yourself after a reasonable am
 GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: `1422`).
 
 Treat this as an additional port for hoprd that needs the same treatment as the peer-to-peer port and API port.
-If you set up any firewall rules or port forwarding for those ports you will need to do the same for GnosisVPN port.
+If you set up any firewall rules or [port forwarding](https://docs.hoprnet.org/node/port-forwarding) for those ports you will need to do the same for GnosisVPN port.
 
 Additionally you need to configure your hoprd node to allow GnosisVPN connections.
 The usual way of running horpd is in a docker container.
@@ -337,8 +337,8 @@ services:
 ### 6. Configure GnosisVPN client - hoprd node [Linux]
 
 1. Create a folder in your home directory called `gnosisvpn-poc`.
-2. Download [config](./config.toml) and move it into that folder.
-3. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
+2. Download the [config.toml file](./config.toml) and move it into that folder.
+3. Edit the `config.toml` and locate the `[hoprd_node]` section to adjust these values:
 
 ```toml
 [hoprd_node]
@@ -376,10 +376,10 @@ intermediates = ["<community relayer peer id"]
 
 Save and close the configuration file.
 
-### 8. Enable GnosisVPN to establish connections to the Exit Nodes [Linux]
+### 8. Enable GnosisVPN to establish connections to the Exit Nodes from your hoprd node [Linux]
 
-**Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
-To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
+**Caution:** If you have **channel auto-funding** enabled on your hoprd node, you might drain your funds quickly.
+To verify this, connect to your node via **Admin UI** of your hoprd node and navigate to the **Configuration** page.
 Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
 **Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
@@ -388,7 +388,7 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 
 #### Steps to Open a Payment Channel [Linux]
 
-1. Connect to your node via **Admin UI**.
+1. Connect to your node via **Admin UI** of your hoprd node.
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
