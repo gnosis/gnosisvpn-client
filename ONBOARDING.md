@@ -423,7 +423,7 @@ chmod +x ~/gnosisvpn-poc/gnosis_vpn-x86_64-linux
 2. Provide the path to your configuration file and launch the GnosisVPN binary file.
 
 ```bash
-sudo GNOSISVPN_CONFIG_PATH= ~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_vpn-x86_64-linux
+sudo GNOSISVPN_CONFIG_PATH=~/gnosisvpn-poc/config.toml ~/gnosisvpn-poc/gnosis_vpn-x86_64-linux
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
