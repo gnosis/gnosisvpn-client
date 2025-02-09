@@ -8,7 +8,7 @@
 version = 1
 
 [hoprd_node]
-endpoint = "http://123.456.7.89:3001"
+endpoint = "http://192.168.0.89:3001"
 api_token = "<hoprd node API token>"
 
 internal_connection_port = 1422
