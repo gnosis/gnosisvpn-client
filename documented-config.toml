@@ -12,7 +12,7 @@ version = 1
 ## hoprd node section - your hoprd node that acts as the connection entry point
 # [hoprd_node]
 
-# # URL pointing to API access of your node with schema and port (e.g.: `http://123.456.7.89:3002`)
+# # URL pointing to API access of your node with schema and port (e.g.: `http://123.456.7.89:3001`)
 # endpoint = "<hoprd node API endpoint>"
 
 # # API access token
