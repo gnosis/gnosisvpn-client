@@ -17,8 +17,5 @@ internal_connection_port = 1422
 [connection]
 destination = "<exit node peer id>"
 
-[connection.target]
-host = "<wg server url>"
-
 [connection.path]
 intermediates = ["<community relayer peer id"]
