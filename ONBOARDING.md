@@ -22,6 +22,8 @@ The following 12 step process will guide you through these topics:
 - **Configure Firefox proxy settings** to use the GnosisVPN connection.
 - **Leave your feedback** afterward by filling out this [form](https://cryptpad.fr/form/#/2/form/view/ID9xmo4wYOdM4ZOzCiVMf5w6ZJehzNaIC53gkNS6C+k/)
 
+Having trouble with the PoC? Check out the [FAQ](FAQ.md)
+
 For any questions or assistance, feel free to join the: [GnosisVPN Discord support channel](https://discord.com/channels/502416149343109121/1337126805995262093)
 
 Please select your operating system to begin:
