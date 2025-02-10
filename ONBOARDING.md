@@ -39,7 +39,7 @@ Please select your operating system to begin:
 
 Create a secure input location where you will receive your assigned WireGuard IP.
 
-1. Go to [rlim.com](https://rlim.com).
+1. Go to [rlim.com](https://rlim.com). We recommend doing so with an AdBlocker enabled or [Brave](https://brave.com/).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
    Leave the "Custom Edit Code" field empty. An edit code will be generated automatically.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
@@ -263,7 +263,7 @@ wg genkey | tee privatekey | wg pubkey > publickey
 
 Create a secure input location where you will receive your assigned WireGuard IP.
 
-1. Go to [rlim.com](https://rlim.com).
+1. Go to [rlim.com](https://rlim.com). We recommend doing so with an AdBlocker enabled or [Brave](https://brave.com/).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
    Leave the "Custom Edit Code" field empty. An edit code will be generated automatically.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
