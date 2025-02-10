@@ -1,7 +1,8 @@
 # Onboarding
 
 Setting up the current version of GnosisVPN PoC can be somewhat complex, as it was designed as a technical proof of concept rather than a full-fledged product.
-If you are not comfortable editing configuration files or using your terminal, or if you are unable to [run HOPR's `hoprd` node](https://docs.hoprnet.org/node/run-a-node-overview), please wait for the next version, which will offer a more streamlined user experience. We expect the below instructions to take approximately 1 hour (excluding wait time for obtaining your VPN IP).
+If you are not comfortable editing configuration files or using your terminal, or if you are unable to [run HOPR's `hoprd` node](https://docs.hoprnet.org/node/run-a-node-overview), please wait for the next version, which will offer a more streamlined user experience.
+We expect the below instructions to take approximately 1 hour (excluding wait time for obtaining your VPN IP).
 
 The Gnosis VPN proof of concept is a work in progress which should not be used in situations which require full anonymity.
 To manage load and aid with testing, an allow list of sites is currently enforced. The full allow list can be viewed at the [servers page](https://gnosisvpn.com/servers#allowlist).
