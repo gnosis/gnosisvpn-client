@@ -52,7 +52,7 @@ Provide your
 - **rlim.com** URL
 - **rlim.com** edit code
 
-in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/dwJy3ESYKS0i0i7uVCFZ0VrkeIwcaudEFq9EN0VjCLc/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until your GnosisVPN user account is created [macOS]
@@ -103,6 +103,7 @@ services:
 - **PROTOCOL**: Select **UDP**.
 
 6. Click **Update Port Mappings** to save your changes.
+7. Ensure you configure port-forwarding on your router to expose the REST API port `3001` and the UDP port `1422` to the internet.
 
 ### 6. Configure GnosisVPN client - hoprd node [macOS]
 
@@ -282,7 +283,7 @@ KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 - **rlim.com** URL
 - **rlim.com** edit code
 
-in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/dwJy3ESYKS0i0i7uVCFZ0VrkeIwcaudEFq9EN0VjCLc/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until your GnosisVPN user account is created [Linux]
