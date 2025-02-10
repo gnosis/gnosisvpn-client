@@ -53,16 +53,16 @@ Create a secure input location where you will receive your assigned WireGuard IP
 Provide your
 
 - Wireguard tunnel public key
-- **rlim.com** URL
-- **rlim.com** edit code
+- **rentry.co** URL
+- **rentry.co** edit code
 
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/xCsBTw3vv4fD8Dz3-IMGWwcUnjjNNy5j4-f6Q1xmlxo/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until your GnosisVPN user account is created [macOS]
 
-After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
-You will have to check your **rlim.com** document yourself after a reasonable amount of time.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rentry.co** document.
+You will have to check your **rentry.co** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [macOS]
 
@@ -219,7 +219,7 @@ PrivateKey = <Generated automatic by WireGuard app>
 
 # NOTE: Copy paste from here
 ListenPort = 51820
-Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/32
+Address = <WireGuard IP> # received via **rentry.co** document, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
@@ -284,16 +284,16 @@ KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 2. Provide your
 
 - public key
-- **rlim.com** URL
-- **rlim.com** edit code
+- **rentry.co** URL
+- **rentry.co** edit code
 
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/xCsBTw3vv4fD8Dz3-IMGWwcUnjjNNy5j4-f6Q1xmlxo/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until your GnosisVPN user account is created [Linux]
 
-After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rlim.com** document.
-You will have to check your **rlim.com** document yourself after a reasonable amount of time.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rentry.co** document.
+You will have to check your **rentry.co** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [Linux]
 
@@ -443,7 +443,7 @@ Replace placeholders `<...>` with the actual values as documented.
 [Interface]
 PrivateKey = <Generated automatic by WireGuard app>
 ListenPort = 51820
-Address = <WireGuard IP> # received via **rlim.com** document, e.g.: 10.128.0.5/32
+Address = <WireGuard IP> # received via **rentry.co** document, e.g.: 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
