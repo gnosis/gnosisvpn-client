@@ -20,7 +20,7 @@ The following 12 step process will guide you through these topics:
   3. Your chosen exit location
 - **Download the binary file** and run it with several env var parameters.
 - **Configure Firefox proxy settings** to use the GnosisVPN connection.
-- **Leave your feedback** afterward by filling out this [form](https://cryptpad.fr/form/#/2/form/view/ID9xmo4wYOdM4ZOzCiVMf5w6ZJehzNaIC53gkNS6C+k/)
+- **Leave your feedback** afterwards by filling out this [form](https://cryptpad.fr/form/#/2/form/view/ID9xmo4wYOdM4ZOzCiVMf5w6ZJehzNaIC53gkNS6C+k/)
 
 Having trouble with the PoC? Check out the [FAQ](FAQ.md)
 
