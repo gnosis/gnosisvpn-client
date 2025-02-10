@@ -53,7 +53,7 @@ Provide your
 - **rlim.com** URL
 - **rlim.com** edit code
 
-in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/dwJy3ESYKS0i0i7uVCFZ0VrkeIwcaudEFq9EN0VjCLc/).
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/xCsBTw3vv4fD8Dz3-IMGWwcUnjjNNy5j4-f6Q1xmlxo/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until your GnosisVPN user account is created [macOS]
@@ -284,7 +284,7 @@ KruyGvXppZ+P4yktb9NmyDUfeqRcTlbgpH7XhywS4Cw= # sample public key
 - **rlim.com** URL
 - **rlim.com** edit code
 
-in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/dwJy3ESYKS0i0i7uVCFZ0VrkeIwcaudEFq9EN0VjCLc/).
+in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/xCsBTw3vv4fD8Dz3-IMGWwcUnjjNNy5j4-f6Q1xmlxo/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 4. Wait until your GnosisVPN user account is created [Linux]
