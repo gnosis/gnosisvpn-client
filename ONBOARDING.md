@@ -20,6 +20,7 @@ The following 12 step process will guide you through these topics:
   3. Your chosen exit location
 - **Download the binary file** and run it with several env var parameters.
 - **Configure Firefox proxy settings** to use the GnosisVPN connection.
+- **Leave your feedback** afterward by filling out this [form](https://cryptpad.fr/form/#/2/form/view/ID9xmo4wYOdM4ZOzCiVMf5w6ZJehzNaIC53gkNS6C+k/)
 
 Please select your operating system to begin:
 
@@ -39,17 +40,17 @@ Please select your operating system to begin:
 
 Create a secure input location where you will receive your assigned WireGuard IP.
 
-1. Go to [rlim.com](https://rlim.com). We recommend doing so with an AdBlocker enabled or [Brave](https://brave.com/).
-2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
-   Leave the "Custom Edit Code" field empty. An edit code will be generated automatically.
-3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
-4. Note the edit code at the top for the next step.
+1. Go to [rentry.co](https://rentry.co/).
+2. In the text field, enter the public key for your recently created WireGuard tunnel.
+3. Locate "Custom url" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Leave the "Custom edit code" field empty. Click on "Go". An edit code will be generated automatically.
+4. Save the generated URL from the browser's address bar (e.g., `https://rentry.co/toms-feedback-gvpn`).
+5. Note the edit code at the top for the next step.
 
 ### 3. Register for GnosisVPN PoC demo [macOS]
 
 Provide your
 
-- public key
+- Wireguard tunnel public key
 - **rlim.com** URL
 - **rlim.com** edit code
 
