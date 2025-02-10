@@ -38,7 +38,12 @@ Please select your operating system to begin:
 ### 1. Generate Wireguard public key [macOS]
 
 1. Download the [WireGuard app](https://apps.apple.com/us/app/wireguard/id1451685025) from the Mac App Store.
-2. Launch WireGuard, create an **Empty tunnel**, name it, and save. Copy the public key of the newly created tunnel.
+2. Launch WireGuard, create an **Empty tunnel**, name it, and save.
+![image](https://github.com/user-attachments/assets/c45b88ba-905d-46c1-8ae4-d79dc169b839)
+
+3. Copy the public key of the newly created tunnel.
+![image](https://github.com/user-attachments/assets/602dc923-f1db-46b7-9331-a6ef1ccd78fb)
+
 
 ### 2. Prepare a feedback channel to receive your WireGuard IP [macOS]
 
