@@ -4,11 +4,17 @@ Setting up the current version of GnosisVPN PoC can be somewhat complex, as it w
 If you are not comfortable editing configuration files or using your terminal, or if you are unable to [run HOPR's `hoprd` node](https://docs.hoprnet.org/node/run-a-node-overview), please wait for the next version, which will offer a more streamlined user experience.
 We expect the below instructions to take approximately 1 hour (excluding wait time for obtaining your VPN IP).
 
-The Gnosis VPN proof of concept is a work in progress which should not be used in situations which require full anonymity.
-To manage load and aid with testing, an allow list of sites is currently enforced. The full allow list can be viewed at the [servers page](https://gnosisvpn.com/servers#allowlist).
-For testing and debugging, exit nodes currently gather logs.
-These logs cannot reveal user requests, server responses, IPs or any other identifying information to Gnosis or any other party.
+The Gnosis VPN proof of concept is a work in progress and may be updated at any time.
+It may therefore be unstable or contain bugs, and should not be used in situations which require full anonymity.
+Use at your own risk. To manage load and aid with testing and debugging, an allow list of sites is currently enforced.
+The full allow list can be viewed at the [servers page](https://gnosisvpn.com/servers#allowlist).
+For testing and debugging, exit nodes currently gather logs. These logs cannot reveal user requests, server responses, IPs or any other identifying information to Gnosis Ltd or any other party.
 Logs are deleted after thirty days.
+
+The software is licensed under the GNU Lesser General Public License v3.0 and may be freely used, modified and distributed in accordance with the license terms.
+Users should check local laws before using the PoC (including operating a relay node).
+Users are solely responsible for how they use and interact with the PoC, and for complying with applicable laws.
+The PoC should not be used for illegal, malicious or unethical purposes.
 
 The following 12 step process will guide you through these topics:
 
