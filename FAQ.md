@@ -5,6 +5,7 @@
 If you’ve activated GnosisVPN but cannot open any websites from the [allow list](https://gnosisvpn.com/servers), follow these steps in order to diagnose and resolve the issue:
 
 1. **Check for a Successful VPN Connection**
+
    After activating GnosisVPN in your terminal, did you see the following success message?
 
    ```
