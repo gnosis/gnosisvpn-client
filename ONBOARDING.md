@@ -19,7 +19,7 @@ The PoC should not be used for illegal, malicious or unethical purposes.
 The following 12 step process will guide you through these topics:
 
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
-- **Configure your hopd node** to allow a GnosisVPN connection.
+- **Configure your hoprd node** to allow a GnosisVPN connection.
 - **Configure GnosisVPN client** using information from three separate sources:
   1. Your hoprd node credentials
   2. Your assigned WireGuard IP
