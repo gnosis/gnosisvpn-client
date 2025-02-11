@@ -20,14 +20,18 @@ Can you access that site?
     Verify that the tunnel status is "Active".
   - Linux users: Run the command: `sudo wg show`. The output displays an interface named `gnosisvpnpoc`.
 
-Do you see an **active** WireGuard tunnel? - If **no**, verify that you followed [step 11](./ONBOARDING.md#11-update-the-newly-created-wireguard-tunnel-and-launch-wireguard-macos) closely.
+Do you see an **active** WireGuard tunnel?
+
+- If **no**, verify that you followed [step 11](./ONBOARDING.md#11-update-the-newly-created-wireguard-tunnel-and-launch-wireguard-macos) closely.
 
 - Check that WireGuard can establish a handshake.
   - macOS users: Locate the WireGuard app icon in the top-right corner of the screen, click on "Manage Tunnels".
     Locate "Data Received:" field of the active tunnel.
   - Linux users: Run the command: `sudo wg show`. Either locate `latest handshake:` or `transfer:` entries.
 
-Do you see more that `0 B` (zero bytes) received or have a `latest handshake` entry? - If **no**, verify that you forward your ports correctly, see [step 5](./ONBOARDING.md#5-configure-your-hoprd-node-to-allow-gnosisvpn-connections-macos).
+Do you see more that `0 B` (zero bytes) received or have a `latest handshake` entry?
+
+- If **no**, verify that you forward your ports correctly, see [step 5](./ONBOARDING.md#5-configure-your-hoprd-node-to-allow-gnosisvpn-connections-macos).
 
 ### Verify Hoprd connection
 
@@ -39,4 +43,8 @@ On successful startup GnosisVPN will display the following message:
     \---============================---/
 ```
 
-Did you see that message? - If **no**, check the log output for any errors. - Ensure you provided a valid entry node / APItoken in the configuration file. - Ensure you have a working route to the exit node, see [step 8](./ONBOARDING.md#8-enable-gnosisvpn-to-establish-connections-to-the-exit-nodes-from-your-hoprd-node-macos).
+Did you see that message?
+
+- If **no**, check the log output for any errors.
+- Ensure you provided a valid entry node / APItoken in the configuration file.
+- Ensure you have a working route to the exit node, see [step 8](./ONBOARDING.md#8-enable-gnosisvpn-to-establish-connections-to-the-exit-nodes-from-your-hoprd-node-macos).
