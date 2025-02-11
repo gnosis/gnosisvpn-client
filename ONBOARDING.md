@@ -249,9 +249,11 @@ The easiest way to do this is to change the Firefox proxy settings.
 - Port: `3128`
 - Socks v5
 
+3. Make sure the `Proxy DNS when using SOCKS v5` option is enabled.
+
 ![Socks5 proxy settings in Firefox on macOS](./onboarding/macOS-FF-proxy.jpg)
 
-3. Click "OK" to save the settings.
+4. Click "OK" to save the settings.
    Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
 
 ---
@@ -470,8 +472,10 @@ The easiest way to do this is to change the Firefox proxy settings.
 - Port: `3128`
 - Socks v5
 
+3. Make sure the `Proxy DNS when using SOCKS v5` option is enabled.
+
 ![Socks5 proxy settings in Firefox on macOS](./onboarding/linux-FF-proxy.png)
 
-3. Click "OK" to save the settings.
+4. Click "OK" to save the settings.
 
 Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
