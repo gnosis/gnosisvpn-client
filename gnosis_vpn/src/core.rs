@@ -352,7 +352,7 @@ impl Core {
                                 log_output::peer_id(conn.destination.to_string().as_str()),
                                 host
                             ),
-                            None => format!("({})", conn.destination),
+                            None => format!("({})", log_output::peer_id(conn.destination.to_string().as_str())),
                         },
                         None => "<exitnode>".to_string(),
                     };
