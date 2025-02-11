@@ -138,15 +138,11 @@ Copy the settings into your `config.toml`:
 [connection]
 destination = "<exit node peer id>"
 
-[connection.target]
-host = "<wg server url>"
-
 [connection.path]
 intermediates = ["<community relayer peer id"]
 ```
 
 - `destination` is the peer ID of the chosen exit node.
-- `host` is the WireGuard server URL of the chosen exit location.
 - `intermediates` specifies the community relay node used to establish the connection.
 
 Save and close the configuration file.
@@ -370,15 +366,11 @@ Copy the settings into your `config.toml`:
 [connection]
 destination = "<exit node peer id>"
 
-[connection.target]
-host = "<wg server url>"
-
 [connection.path]
 intermediates = ["<community relayer peer id"]
 ```
 
 - `destination` is the peer ID of the chosen exit node.
-- `host` is the WireGuard server URL of the chosen exit location.
 - `intermediates` specifies the community relay node used to establish the connection.
 
 Save and close the configuration file.

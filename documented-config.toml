@@ -56,7 +56,7 @@ version = 1
 # # Caution: leave this as is if you don't know what you're doing
 # [connection.target]
 # # [OPTIONAL] target host of the connection exit without schema, defaults to localhost wg endpoint
-# host = "127.0.0.1"
+# host = "172.17.0.1"
 # # [OPTIONAL] target port of the connection exit, defaults to default wg port
 # port = 51820
 

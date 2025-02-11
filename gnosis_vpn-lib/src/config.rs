@@ -158,7 +158,7 @@ impl Display for SessionTargetType {
 }
 
 pub fn default_session_target_host() -> String {
-    "host.docker.internal".to_string()
+    "172.17.0.1".to_string()
 }
 
 pub fn default_session_target_port() -> u16 {
