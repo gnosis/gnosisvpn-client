@@ -251,7 +251,7 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 3. Make sure the `Proxy DNS when using SOCKS v5` option is enabled.
 
-![Socks5 proxy settings in Firefox on macOS](./onboarding/macOS-FF-proxy.jpg)
+![Socks5 proxy settings in Firefox on macOS](./onboarding/macOS-FF-proxy.png)
 
 4. Click "OK" to save the settings.
    Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
