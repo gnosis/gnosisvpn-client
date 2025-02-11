@@ -39,10 +39,12 @@ Please select your operating system to begin:
 
 1. Download the [WireGuard app](https://apps.apple.com/us/app/wireguard/id1451685025) from the Mac App Store.
 2. Launch WireGuard, create an **Empty tunnel**, name it, and save.
-  ![image](https://github.com/user-attachments/assets/790f5940-5330-4988-a954-2b5cdf50e192)
+
+ ![image](https://github.com/user-attachments/assets/790f5940-5330-4988-a954-2b5cdf50e192)
 
 4. Copy the public key of the newly created tunnel.
-  ![image](https://github.com/user-attachments/assets/5a71ee80-dd6c-483c-8841-ad5957d4edce)
+ 
+ ![image](https://github.com/user-attachments/assets/5a71ee80-dd6c-483c-8841-ad5957d4edce)
 
 ### 2. Prepare a feedback channel to receive your WireGuard IP [macOS]
 
@@ -246,7 +248,7 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 3. Click "OK" to save the settings.
 
-  ![image](https://github.com/user-attachments/assets/bf3f4a30-452d-4d1d-be87-2722621b06c0)
+ ![image](https://github.com/user-attachments/assets/bf3f4a30-452d-4d1d-be87-2722621b06c0)
 
 Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
 
@@ -467,7 +469,5 @@ The easiest way to do this is to change the Firefox proxy settings.
 - Socks v5
 
 3. Click "OK" to save the settings.
-
-  ![image](https://github.com/user-attachments/assets/bf3f4a30-452d-4d1d-be87-2722621b06c0)
 
 Start browsing [these select sites](https://gnosisvpn.com/servers#allowlist) through GnosisVPN.
