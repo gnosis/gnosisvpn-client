@@ -2,39 +2,41 @@
 
 ## Unable to Access Websites After Activating GnosisVPN
 
-If you’ve activated GnosisVPN but cannot open any websites from the [allow list](https://gnosisvpn.com/servers), follow these steps in order to diagnose and resolve the issue:
+If you’ve activated GnosisVPN but cannot open any websites from the [allow list](https://gnosisvpn.com/servers#allowlist), follow these steps in order to diagnose and resolve the issue:
 
-1. **Check for a Successful VPN Connection**
-   After activating GnosisVPN in your terminal, did you see the following success message?
+### Test Website Access
 
-   ```
-   /---============================---\
-   |   HOPRD CONNECTION ESTABLISHED   |
-   \---============================---/
-   ```
+- Double check your Firefox proxy settings as outlined in [step 12](./ONBOARDING.md#12-use-gnosisvpn-connection-to-browse-the-internet-macos).
+- Navigate to [example.com](https://example.com/).
 
-   - If **yes**, proceed to the next step.
-   - If **no**, restart the VPN activation process and ensure there are no errors.
-     Double-check that you’ve followed the step-by-step guide carefully to avoid missing any critical steps.
+Can you access that site?
 
-2. **Verify WireGuard is Running and the Tunnel is Active**
+- If **yes**, everything works as long as you adhere to the [allow list](https://gnosisvpn.com/servers#allowlist).
 
-   Ensure that WireGuard is running on your machine and that the tunnel has an active status.
+### Verify WireGuard connection
 
-   - macOS users: Locate the WireGuard app icon in the top-right corner of the screen, click on "Manage Tunnels", and verify that the tunnel status is "Active".
-   - Linux users: Run the command: `sudo wg show`. If the output displays an interface named "gnosisvpnpoc", this indicates that your tunnel is active.
+- Ensure that WireGuard is running on your machine and that the tunnel has an active status.
+  - macOS users: Locate the WireGuard app icon in the top-right corner of the screen, click on "Manage Tunnels".
+    Verify that the tunnel status is "Active".
+  - Linux users: Run the command: `sudo wg show`. The output displays an interface named `gnosisvpnpoc`.
 
-3. **Check for Data Transmission**
+Do you see an **active** WireGuard tunnel? - If **no**, verify that you followed [step 11](./ONBOARDING.md#11-update-the-newly-created-wireguard-tunnel-and-launch-wireguard-macos) closely.
 
-   - In the active tunnel, look for the "Data Received:" field.
-   - If data is being received, the connection is working.
-   - If no data is received, there may be an issue with the VPN connection or your network.
+- Check that WireGuard can establish a handshake.
+  - macOS users: Locate the WireGuard app icon in the top-right corner of the screen, click on "Manage Tunnels".
+    Locate "Data Received:" field of the active tunnel.
+  - Linux users: Run the command: `sudo wg show`. Either locate `latest handshake:` or `transfer:` entries.
 
-4. **Verify Proxy Settings in Firefox**
+Do you see more that `0 B` (zero bytes) received or have a `latest handshake` entry? - If **no**, verify that you forward your ports correctly, see [step 5](./ONBOARDING.md#5-configure-your-hoprd-node-to-allow-gnosisvpn-connections-macos).
 
-   - Ensure the proxy settings in your Firefox browser are configured correctly.
-   - Double-check the proxy address and port to match the required settings for GnosisVPN.
+### Verify Hoprd connection
 
-5. **Test Website Access**
+On successful startup GnosisVPN will display the following message:
 
-   If all the above steps are successful, try accessing a website [https://gnosisscan.io](https://gnosisscan.io)
+```
+    /---============================---\
+    |   HOPRD CONNECTION ESTABLISHED   |
+    \---============================---/
+```
+
+Did you see that message? - If **no**, check the log output for any errors. - Ensure you provided a valid entry node / APItoken in the configuration file. - Ensure you have a working route to the exit node, see [step 8](./ONBOARDING.md#8-enable-gnosisvpn-to-establish-connections-to-the-exit-nodes-from-your-hoprd-node-macos).
