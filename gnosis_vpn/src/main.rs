@@ -311,7 +311,7 @@ fn loop_daemon(
     let mut shutdown_receiver: crossbeam_channel::Receiver<()> = crossbeam_channel::never();
     let mut ctrc_already_triggered = false;
 
-    tracing::info!("started in listening mode");
+    tracing::info!("enter listening mode");
     // run continously until interrupted via signal
     loop {
         crossbeam_channel::select! {
@@ -350,6 +350,7 @@ fn loop_daemon(
 fn main() {
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
+    tracing::info!(version = env!("CARGO_PKG_VERSION"), "starting {}", env!("CARGO_PKG_NAME"));
 
     let _args = Cli::parse();
     let socket_path = socket::path();
