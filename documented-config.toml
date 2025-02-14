@@ -18,11 +18,12 @@ version = 1
 # # API access token
 # api_token = "<hoprd node API token>"
 
-# # [OPTIONAL] internal port - use this if you have a firewall running and only forward a specific port.
-# # This is NOT your API port, which must be specified in the `endpoint` field.
-# # This port is an additional port used to establish the tunnel connection on your hoprd node.
-# # In general, if you want to establish a connection on a specific port, just provide that port here.
-# internal_connection_port = 1422
+# Container forwarded connection port – if your hoprd node runs inside a Docker container,
+# this should match the forwarded UDP port into the container.
+# Note: This is NOT your API port, which must be specified in the `endpoint` field.
+# This port is an additional port used to establish the tunnel connection on your hoprd node.
+# In general, if you want to establish a connection on a specific port, simply provide that port here.
+internal_connection_port = 1422
 
 ###
 ## connection section - connection configuration parameters
