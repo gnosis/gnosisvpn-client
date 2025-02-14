@@ -41,7 +41,7 @@ Please select your operating system to begin:
 
 ## Instructions for macOS
 
-### 1. Generate Wireguard public key [macOS]
+### 1. Generate WireGuard public key [macOS]
 
 1. Download the [WireGuard app](https://apps.apple.com/us/app/wireguard/id1451685025) from the Mac App Store.
 2. Launch WireGuard, create an **Empty tunnel**, name it, and save.
@@ -63,7 +63,7 @@ Create a secure input location where you will receive your assigned WireGuard IP
 
 Provide your
 
-- Wireguard tunnel public key
+- WireGuard tunnel public key
 - **rentry.co** URL
 - **rentry.co** edit code
 
@@ -77,24 +77,24 @@ You will have to check your **rentry.co** document yourself after a reasonable a
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [macOS]
 
-GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: `1422`).
+GnosisVPN will create a UDP connection to your hoprd node on a specified port (e.g.: `1422`).
 
 Treat this as an additional port for hoprd that needs the same treatment as the peer-to-peer port and API port.
-If you set up any firewall rules or [port forwarding](https://docs.hoprnet.org/node/port-forwarding) for those ports you will need to do the same for GnosisVPN port.
+If you set up any firewall rules or [port forwarding](https://docs.hoprnet.org/node/port-forwarding) for those ports you will need to do the same for the GnosisVPN port.
 
-Additionally you need to configure your hoprd node to allow GnosisVPN connections.
-The usual way of running horpd is in a docker container.
+Additionally, you need to configure your hoprd node to allow GnosisVPN connections.
+The usual way of running hoprd is in a docker container.
 This means you need to configure docker to forward that port.
 
 Depending on your setup this can be done in different ways.
 
 #### Hoprd for Docker [macOS]
 
-Update the `hoprd` run command to inlude the port forwarding: `docker run ... -p 1422:1422/udp ...`.
+Update the `hoprd` run command to include the port forwarding: `docker run ... -p 1422:1422/udp ...`.
 
 #### Hoprd for Docker Compose [macOS]
 
-Locate `docker-compose.yaml` update update the `ports:` section of `hoprd:`:
+Locate `docker-compose.yaml` and update the `ports:` section of `hoprd`:
 
 ```yaml
 services:
