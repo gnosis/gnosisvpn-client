@@ -232,8 +232,8 @@ ListenPort = 51820
 Address = <WireGuard IP> # received via **rentry.co** document, e.g., 10.128.0.5/32
 
 [Peer]
-PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
-Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
+PublicKey = <lm0QdCOxg4BxQK1wHujjHsOtSUKrNFgfbGxyWUH+hRk=> # listed on https://gnosisvpn.com/servers
+Endpoint = <your hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
 AllowedIPs = 10.128.0.0/9
 PersistentKeepalive = 30
 ```
@@ -458,8 +458,8 @@ ListenPort = 51820
 Address = <WireGuard IP> # received via **rentry.co** document, e.g., 10.128.0.5/32
 
 [Peer]
-PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
-Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
+PublicKey = <lm0QdCOxg4BxQK1wHujjHsOtSUKrNFgfbGxyWUH+hRk=> # listed on https://gnosisvpn.com/servers
+Endpoint = <your hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
 AllowedIPs = 10.128.0.0/9
 PersistentKeepalive = 30
 ```
