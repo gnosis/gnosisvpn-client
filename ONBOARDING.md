@@ -4,23 +4,23 @@ Setting up the current version of GnosisVPN PoC can be somewhat complex, as it w
 If you are not comfortable editing configuration files or using your terminal, or if you are unable to [run HOPR's `hoprd` node](https://docs.hoprnet.org/node/run-a-node-overview), please wait for the next version, which will offer a more streamlined user experience.
 We expect the below instructions to take approximately 1 hour (excluding wait time for obtaining your VPN IP).
 
-The Gnosis VPN proof of concept is a work in progress and may be updated at any time.
+The GnosisVPN proof of concept is a work in progress and may be updated at any time.
 It may therefore be unstable or contain bugs, and should not be used in situations which require full anonymity.
 Use at your own risk. To manage load and aid with testing and debugging, an allow list of sites is currently enforced.
 The full allow list can be viewed at the [servers page](https://gnosisvpn.com/servers#allowlist).
-For testing and debugging, exit nodes currently gather logs. These logs cannot reveal user requests, server responses, IPs or any other identifying information.
+For testing and debugging, exit nodes currently gather logs. These logs cannot reveal user requests, server responses, IPs, or any other identifying information.
 Logs are deleted after thirty days.
 
-The software is licensed under the GNU Lesser General Public License v3.0 and may be freely used, modified and distributed in accordance with the license terms.
+The software is licensed under the GNU Lesser General Public License v3.0 and may be freely used, modified, and distributed in accordance with the license terms.
 Users should check local laws before using the PoC (including operating a relay node).
 Users are solely responsible for how they use and interact with the PoC, and for complying with applicable laws.
-The PoC should not be used for illegal, malicious or unethical purposes.
+The PoC should not be used for illegal, malicious, or unethical purposes.
 
-The following 12 step process will guide you through these topics:
+The following 12-step process will guide you through these topics:
 
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure your hoprd node** to allow a GnosisVPN connection.
-- **Configure GnosisVPN client** using information from three separate sources:
+- **Configure the GnosisVPN client** using information from three separate sources:
   1. Your hoprd node credentials
   2. Your assigned WireGuard IP
   3. Your chosen exit location
@@ -30,7 +30,7 @@ The following 12 step process will guide you through these topics:
 
 Having trouble with the PoC? Check out the [FAQ](FAQ.md).
 
-For any questions or assistance, feel free to join the: [GnosisVPN Discord support channel](https://discord.com/channels/502416149343109121/1337126805995262093).
+For any questions or assistance, feel free to join the [GnosisVPN Discord support channel](https://discord.com/channels/502416149343109121/1337126805995262093).
 
 Please select your operating system to begin:
 
@@ -55,7 +55,7 @@ Create a secure input location where you will receive your assigned WireGuard IP
 
 1. Go to [rentry.co](https://rentry.co/).
 2. In the text field, enter the public key for your recently created WireGuard tunnel.
-3. Locate "Custom url" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Leave the "Custom edit code" field empty. Click on "Go". An edit code will be generated automatically.
+3. Locate the "Custom url" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Leave the "Custom edit code" field empty. Click **Go**. An edit code will be generated automatically.
 4. Save the generated URL from the browser's address bar (e.g., `https://rentry.co/toms-feedback-gvpn`).
 5. Note the edit code at the top for the next step.
 
@@ -68,11 +68,11 @@ Provide your
 - **rentry.co** edit code
 
 in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/xCsBTw3vv4fD8Dz3-IMGWwcUnjjNNy5j4-f6Q1xmlxo/).
-If you have trouble opening cryptpad, please try to open it in incognito mode.
+If you have trouble opening CryptPad, please try to open it in incognito mode.
 
 ### 4. Wait until your GnosisVPN user account is created [macOS]
 
-After someone picked up your public key and added it to our WireGuard servers you will find your assigned WireGuard IP at your **rentry.co** document.
+After someone picks up your public key and adds it to our WireGuard servers, you will find your assigned WireGuard IP at your **rentry.co** document.
 You will have to check your **rentry.co** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [macOS]
@@ -80,13 +80,12 @@ You will have to check your **rentry.co** document yourself after a reasonable a
 GnosisVPN will create a UDP connection to your hoprd node on a specified port (e.g., `1422`).
 
 Treat this as an additional port for hoprd that needs the same treatment as the peer-to-peer port and API port.
-If you set up any firewall rules or [port forwarding](https://docs.hoprnet.org/node/port-forwarding) for those ports you will need to do the same for the GnosisVPN port.
+If you set up any firewall rules or [port forwarding](https://docs.hoprnet.org/node/port-forwarding) for those ports, you will need to do the same for the GnosisVPN port.
 
 Additionally, you need to configure your hoprd node to allow GnosisVPN connections.
-The usual way of running hoprd is in a docker container.
-This means you need to configure docker to forward that port.
+The usual way of running hoprd is in a Docker container. This means you need to configure Docker to forward that port.
 
-Depending on your setup this can be done in different ways.
+Depending on your setup, this can be done in different ways.
 
 #### Hoprd for Docker [macOS]
 
@@ -116,13 +115,11 @@ services:
 3. Go to the **Network** tab and locate the **Public Port Mapping** section.
 4. Add a new port entry by clicking on **New port +**.
 5. Configure the following settings:
-
 - **HOST PORT**: `1422`
 - **PACKAGE PORT NUMBER**: `1422`
 - **PROTOCOL**: Select **UDP**.
-
 6. Click **Update Port Mappings** to save your changes.
-7. Ensure you configure port-forwarding on your router to expose the REST API port `3001` and the UDP port `1422` to the internet.
+7. Ensure you configure port forwarding on your router to expose the REST API port `3001` and the UDP port `1422` to the internet.
 
 ### 6. Configure GnosisVPN client - hoprd node [macOS]
 
@@ -163,16 +160,16 @@ Save and close the configuration file.
 ### 8. Enable GnosisVPN to establish connections to the Exit Nodes from your hoprd node [macOS]
 
 **Caution:** If you have **channel auto-funding** enabled on your hoprd node, you might drain your funds quickly.
-To verify this, connect to your node via **Admin UI** of your hoprd node and navigate to the **Configuration** page.
+To verify this, connect to your node via the **Admin UI** of your hoprd node and navigate to the **Configuration** page.
 Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
-**Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
+**Important Note:** Currently, GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
 To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
 The relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
 
 #### Steps to Open a Payment Channel [macOS]
 
-1. Connect to your node via **Admin UI** of your hoprd node.
+1. Connect to your node via the **Admin UI** of your hoprd node.
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
@@ -230,7 +227,7 @@ PrivateKey = <Generated automatically by the WireGuard app>
 
 # NOTE: Copy-paste from here
 ListenPort = 51820
-Address = <WireGuard IP> # received via **rentry.co** document, e.g.: 10.128.0.5/32
+Address = <WireGuard IP> # received via **rentry.co** document, e.g., 10.128.0.5/32
 
 [Peer]
 PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
@@ -248,11 +245,9 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 1. Open **Network Connection Settings** by navigating to **Settings → General → Network Settings** or search "proxy" in the settings search bar and click on the **Settings** button.
 2. Choose **manual proxy configuration** and enter:
-
 - **SOCKS Host**: `10.128.0.1`
 - **Port**: `3128`
 - **Socks v5**
-
 3. Make sure the `Proxy DNS when using SOCKS v5` option is enabled.
 
 ![Socks5 proxy settings in Firefox on macOS](./onboarding/macOS-FF-proxy.png)
@@ -317,8 +312,7 @@ Treat this as an additional port for hoprd that needs the same treatment as the 
 If you set up any firewall rules or [port forwarding](https://docs.hoprnet.org/node/port-forwarding) for those ports, you will need to do the same for the GnosisVPN port.
 
 Additionally, you need to configure your hoprd node to allow GnosisVPN connections.
-The usual way of running hoprd is in a Docker container.
-This means you need to configure Docker to forward that port.
+The usual way of running hoprd is in a Docker container. This means you need to configure Docker to forward that port.
 
 Depending on your setup, this can be done in different ways.
 
@@ -350,11 +344,9 @@ services:
 3. Go to the **Network** tab and locate the **Public Port Mapping** section.
 4. Add a new port entry by clicking on **New port +**.
 5. Configure the following settings:
-
 - **HOST PORT**: `1422`
 - **PACKAGE PORT NUMBER**: `1422`
 - **PROTOCOL**: Select **UDP**.
-
 6. Click **Update Port Mappings** to save your changes.
 
 ### 6. Configure GnosisVPN client - hoprd node [Linux]
@@ -398,7 +390,7 @@ Save and close the configuration file.
 ### 8. Enable GnosisVPN to establish connections to the Exit Nodes from your hoprd node [Linux]
 
 **Caution:** If you have **channel auto-funding** enabled on your hoprd node, you might drain your funds quickly.
-To verify this, connect to your node via **Admin UI** of your hoprd node and navigate to the **Configuration** page.
+To verify this, connect to your node via the **Admin UI** of your hoprd node and navigate to the **Configuration** page.
 Look at the **Strategies** section and ensure that `!AutoFunding` is **absent**.
 
 **Important Note:** Currently, GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
@@ -407,7 +399,7 @@ The relay node address can be found on the [GnosisVPN servers](https://gnosisvpn
 
 #### Steps to Open a Payment Channel [Linux]
 
-1. Connect to your node via **Admin UI** of your hoprd node.
+1. Connect to your node via the **Admin UI** of your hoprd node.
 2. Navigate to the **PEERS** page.
 3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
 4. Click on **OPEN outgoing channel**.
@@ -479,11 +471,9 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 1. Open **Network Connection Settings** by navigating to **Settings → General → Network Settings** or search "proxy" in the settings search bar and click on the **Settings** button.
 2. Choose **manual proxy configuration** and enter:
-
 - **SOCKS Host**: `10.128.0.1`
 - **Port**: `3128`
 - **Socks v5**
-
 3. Make sure the `Proxy DNS when using SOCKS v5` option is enabled.
 
 ![Socks5 proxy settings in Firefox on Linux](./onboarding/linux-FF-proxy.png)
