@@ -115,9 +115,11 @@ services:
 3. Go to the **Network** tab and locate the **Public Port Mapping** section.
 4. Add a new port entry by clicking on **New port +**.
 5. Configure the following settings:
+
 - **HOST PORT**: `1422`
 - **PACKAGE PORT NUMBER**: `1422`
 - **PROTOCOL**: Select **UDP**.
+
 6. Click **Update Port Mappings** to save your changes.
 7. Ensure you configure port forwarding on your router to expose the REST API port `3001` and the UDP port `1422` to the internet.
 
@@ -245,9 +247,11 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 1. Open **Network Connection Settings** by navigating to **Settings → General → Network Settings** or search "proxy" in the settings search bar and click on the **Settings** button.
 2. Choose **manual proxy configuration** and enter:
+
 - **SOCKS Host**: `10.128.0.1`
 - **Port**: `3128`
 - **Socks v5**
+
 3. Make sure the `Proxy DNS when using SOCKS v5` option is enabled.
 
 ![Socks5 proxy settings in Firefox on macOS](./onboarding/macOS-FF-proxy.png)
@@ -344,9 +348,11 @@ services:
 3. Go to the **Network** tab and locate the **Public Port Mapping** section.
 4. Add a new port entry by clicking on **New port +**.
 5. Configure the following settings:
+
 - **HOST PORT**: `1422`
 - **PACKAGE PORT NUMBER**: `1422`
 - **PROTOCOL**: Select **UDP**.
+
 6. Click **Update Port Mappings** to save your changes.
 
 ### 6. Configure GnosisVPN client - hoprd node [Linux]
@@ -471,9 +477,11 @@ The easiest way to do this is to change the Firefox proxy settings.
 
 1. Open **Network Connection Settings** by navigating to **Settings → General → Network Settings** or search "proxy" in the settings search bar and click on the **Settings** button.
 2. Choose **manual proxy configuration** and enter:
+
 - **SOCKS Host**: `10.128.0.1`
 - **Port**: `3128`
 - **Socks v5**
+
 3. Make sure the `Proxy DNS when using SOCKS v5` option is enabled.
 
 ![Socks5 proxy settings in Firefox on Linux](./onboarding/linux-FF-proxy.png)
