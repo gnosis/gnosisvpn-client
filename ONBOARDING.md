@@ -8,7 +8,7 @@ The Gnosis VPN proof of concept is a work in progress and may be updated at any 
 It may therefore be unstable or contain bugs, and should not be used in situations which require full anonymity.
 Use at your own risk. To manage load and aid with testing and debugging, an allow list of sites is currently enforced.
 The full allow list can be viewed at the [servers page](https://gnosisvpn.com/servers#allowlist).
-For testing and debugging, exit nodes currently gather logs. These logs cannot reveal user requests, server responses, IPs or any other identifying information to Gnosis Ltd or any other party.
+For testing and debugging, exit nodes currently gather logs. These logs cannot reveal user requests, server responses, IPs or any other identifying information.
 Logs are deleted after thirty days.
 
 The software is licensed under the GNU Lesser General Public License v3.0 and may be freely used, modified and distributed in accordance with the license terms.
