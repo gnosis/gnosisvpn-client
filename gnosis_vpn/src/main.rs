@@ -23,7 +23,7 @@ mod remote_data;
 mod session;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[command(version)]
 struct Cli {}
 
@@ -348,6 +348,8 @@ fn loop_daemon(
 }
 
 fn main() {
+    let _args = Cli::parse();
+
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
     tracing::info!(
@@ -356,7 +358,6 @@ fn main() {
         env!("CARGO_PKG_NAME")
     );
 
-    let _args = Cli::parse();
     let socket_path = socket::path();
 
     let exit = daemon(&socket_path);
