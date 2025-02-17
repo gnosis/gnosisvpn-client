@@ -69,11 +69,12 @@ jobs:
         with:
           ref: ${{ steps.vars.outputs.branch }}
       - name: Install Nix
-        uses: cachix/install-nix-action@v29
+        uses: cachix/install-nix-action@v30
       - name: Use Nix Cache
         uses: cachix/cachix-action@v15
         with:
-          name: gnosis-vpn-client
+          name: gnosis-vpn-server
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
         env:
           USER: runner
       - name: Get version

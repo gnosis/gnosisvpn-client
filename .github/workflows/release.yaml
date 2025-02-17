@@ -52,13 +52,7 @@ jobs:
           google-credentials: ${{ secrets.GCP_SA_GITHUB_ACTIONS }}
           install-sdk: "true"
       - name: Install Nix
-        uses: cachix/install-nix-action@v29
-      - name: Use Nix Cache
-        uses: cachix/cachix-action@v15
-        with:
-          name: gnosis-vpn-client
-        env:
-          USER: runner
+        uses: cachix/install-nix-action@v30
       - name: Setup environment variables
         id: environment
         run: |
